@@ -67,6 +67,7 @@ export default class SqliteDatabaseWorker extends HiveWorkerBase implements IKne
         };
 
         const tableSql: string = `select name from sqlite_master where type = 'table' and name not like 'sqlite%'`;
+        // to get fields, loop table name and do `PRAGMA table_info(${tableName});`
         const tableResult = await AwaitHelper.execute<any[][]>(this.executeQuery(tableSql));
         console.log(tableResult);
 
