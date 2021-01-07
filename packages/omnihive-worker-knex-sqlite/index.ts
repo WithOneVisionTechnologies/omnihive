@@ -1,7 +1,6 @@
 import { HiveWorkerType } from '@withonevision/omnihive-hive-common/enums/HiveWorkerType';
 import { OmniHiveLogLevel } from '@withonevision/omnihive-hive-common/enums/OmniHiveLogLevel';
 import { AwaitHelper } from '@withonevision/omnihive-hive-common/helpers/AwaitHelper';
-import { ObjectHelper } from '@withonevision/omnihive-hive-common/helpers/ObjectHelper';
 import { HiveWorker } from '@withonevision/omnihive-hive-common/models/HiveWorker';
 import { StoredProcSchema } from '@withonevision/omnihive-hive-common/models/StoredProcSchema';
 import { TableSchema } from '@withonevision/omnihive-hive-common/models/TableSchema';
@@ -12,12 +11,11 @@ import { HiveWorkerBase } from '@withonevision/omnihive-hive-worker/models/HiveW
 import knex from 'knex';
 import { serializeError } from 'serialize-error';
 
-
 export class SqliteDatabaseWorkerMetadata {
     public filePath: string = "";
 }
 
-export default class MssqlDatabaseWorker extends HiveWorkerBase implements IKnexDatabaseWorker {
+export default class SqliteDatabaseWorker extends HiveWorkerBase implements IKnexDatabaseWorker {
 
     public connection!: knex;
     private logWorker: ILogWorker | undefined = undefined;
@@ -54,9 +52,7 @@ export default class MssqlDatabaseWorker extends HiveWorkerBase implements IKnex
     public executeQuery = async (query: string): Promise<any[][]> => {
 
         this.logWorker?.write(OmniHiveLogLevel.Debug, query);
-
-        const poolRequest = this.connectionPool.request();
-        const result = await AwaitHelper.execute<any>(poolRequest.query(query));
+        const result = await AwaitHelper.execute<any>(this.connection.raw(query));
         return result.recordsets;
     }
 
@@ -70,11 +66,9 @@ export default class MssqlDatabaseWorker extends HiveWorkerBase implements IKnex
             storedProcs: [],
         };
 
-        const tableResult = await AwaitHelper.execute<any[][]>(this.executeQuery("exec oh_get_schema"));
-        const storedProcResult = await AwaitHelper.execute<any[][]>(this.executeQuery("exec oh_get_stored_proc_schema"));
-
-        result.tables = ObjectHelper.createArray(TableSchema, tableResult[0]);
-        result.storedProcs = ObjectHelper.createArray(StoredProcSchema, storedProcResult[0]);
+        const tableSql: string = `select name from sqlite_master where type = 'table' and name not like 'sqlite%'`;
+        const tableResult = await AwaitHelper.execute<any[][]>(this.executeQuery(tableSql));
+        console.log(tableResult);
 
         return result;
     }
