@@ -24,17 +24,6 @@ export class GlobalObject extends WorkerSetterBase {
     public serverStatus: ServerStatus = ServerStatus.Unknown;
     public webServer: Server | undefined = undefined;
 
-    public getWebRootUrlWithPort = (): string => {
-        const rootUrl: string = global.omnihive.serverSettings.config.rootUrl;
-        if (
-            global.omnihive.serverSettings.config.webPortNumber === 80 ||
-            global.omnihive.serverSettings.config.webPortNumber === 443
-        ) {
-            return rootUrl;
-        }
-        return `${rootUrl}:${global.omnihive.serverSettings.config.webPortNumber}`;
-    };
-
     public async pushWorker(hiveWorker: HiveWorker): Promise<void> {
         if (!hiveWorker.enabled) {
             return;

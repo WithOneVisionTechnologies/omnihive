@@ -655,7 +655,6 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine();
 
             // Before insert custom function
-
             const beforeInsertArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
@@ -679,9 +678,12 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             if (beforeInsertArray.length > 0) {
                 _.orderBy(beforeInsertArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
+                    builder.appendLine(
                         `\t\t\t\t\t\t{${pluralize.plural(tableSchema[0].tableNameCamelCase)}, customDmlArgs} = ${
                             lifecycleWorker.worker.name
-                        }("${databaseWorker.config.name}", "${tableSchema[0].tableName}", ${pluralize.plural(
+                        }Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", ${pluralize.plural(
                             tableSchema[0].tableNameCamelCase
                         )}, customDmlArgs, context.omnihive);`
                     );
@@ -691,7 +693,6 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine();
 
             // Instead of insert custom function
-
             const insteadOfInsertArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
@@ -714,9 +715,12 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
 
             if (insteadOfInsertArray.length > 0) {
                 _.orderBy(insteadOfInsertArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker, index) => {
+                    builder.appendLine(
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
                     if (index === insteadOfInsertArray.length - 1) {
                         builder.appendLine(
-                            `\t\t\t\t\t\tvar insertResponse = ${lifecycleWorker.worker.name}("${
+                            `\t\t\t\t\t\tvar insertResponse = ${lifecycleWorker.worker.name}Instance("${
                                 databaseWorker.config.name
                             }", "${tableSchema[0].tableName}", ${pluralize.plural(
                                 tableSchema[0].tableNameCamelCase
@@ -726,7 +730,9 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                         builder.appendLine(
                             `\t\t\t\t\t\t{${pluralize.plural(tableSchema[0].tableNameCamelCase)}, customDmlArgs} = ${
                                 lifecycleWorker.worker.name
-                            }("${databaseWorker.config.name}", "${tableSchema[0].tableName}", ${pluralize.plural(
+                            }Instance("${databaseWorker.config.name}", "${
+                                tableSchema[0].tableName
+                            }", ${pluralize.plural(
                                 tableSchema[0].tableNameCamelCase
                             )}, customDmlArgs, context.omnihive);`
                         );
@@ -745,7 +751,6 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine();
 
             // After insert custom function
-
             const afterInsertArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
@@ -769,7 +774,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             if (afterInsertArray.length > 0) {
                 _.orderBy(afterInsertArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
-                        `\t\t\t\t\t\t{insertResponse, customDmlArgs} = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", insertResponse, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
+                    builder.appendLine(
+                        `\t\t\t\t\t\t{insertResponse, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", insertResponse, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -832,7 +840,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             if (beforeUpdateArray.length > 0) {
                 _.orderBy(beforeUpdateArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
-                        `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
+                    builder.appendLine(
+                        `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -862,13 +873,16 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
 
             if (insteadOfUpdateArray.length > 0) {
                 _.orderBy(beforeUpdateArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker, index) => {
+                    builder.appendLine(
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
                     if (index === insteadOfUpdateArray.length - 1) {
                         builder.appendLine(
-                            `\t\t\t\t\t\tvar updateCount = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\tvar updateCount = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
                         );
                     } else {
                         builder.appendLine(
-                            `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
                         );
                     }
                 });
@@ -904,7 +918,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             if (afterUpdateArray.length > 0) {
                 _.orderBy(afterUpdateArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
-                        `\t\t\t\t\t\t{updateCount, customDmlArgs} = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateCount, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
+                    builder.appendLine(
+                        `\t\t\t\t\t\t{updateCount, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateCount, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -962,7 +979,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             if (beforeDeleteArray.length > 0) {
                 _.orderBy(beforeDeleteArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
-                        `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
+                    builder.appendLine(
+                        `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -992,13 +1012,16 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
 
             if (insteadOfDeleteArray.length > 0) {
                 _.orderBy(insteadOfDeleteArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker, index) => {
+                    builder.appendLine(
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
                     if (index === insteadOfDeleteArray.length - 1) {
                         builder.appendLine(
-                            `\t\t\t\t\t\tvar deleteCount = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\tvar deleteCount = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
                         );
                     } else {
                         builder.appendLine(
-                            `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
                         );
                     }
                 });
@@ -1034,7 +1057,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             if (afterDeleteArray.length > 0) {
                 _.orderBy(afterDeleteArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
-                        `\t\t\t\t\t{deleteCount, customDmlArgs} = ${lifecycleWorker.worker.name}("${databaseWorker.config.name}", "${tableSchema[0].tableName}", deleteCount, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
+                    );
+                    builder.appendLine(
+                        `\t\t\t\t\t{deleteCount, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", deleteCount, customDmlArgs, context.omnihive);`
                     );
                 });
             }

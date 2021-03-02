@@ -46,16 +46,22 @@ const init = async () => {
                     description: "Full path to settings file",
                 })
                 .option("adminPort", {
-                    alias: "ap",
+                    alias: "a",
                     type: "number",
                     demandOption: false,
                     description: "Admin port number",
                 })
-                .option("webPort", {
-                    alias: "wp",
+                .option("nodePort", {
+                    alias: "n",
                     type: "number",
                     demandOption: false,
-                    description: "Web port number",
+                    description: "Node port number",
+                })
+                .option("webRootUrl", {
+                    alias: "w",
+                    type: "string",
+                    demandOption: false,
+                    description: "Web Root URL",
                 })
                 .check((args) => {
                     if (args.settings) {
@@ -67,6 +73,20 @@ const init = async () => {
                             return true;
                         } catch {
                             return false;
+                        }
+                    }
+
+                    if (args.webRootUrl) {
+                        try {
+                            const url = new URL(args.webRootUrl);
+
+                            if (url) {
+                                return true;
+                            } else {
+                                return "This URL is not valid.  Try a different URL.";
+                            }
+                        } catch {
+                            return "This URL is not valid.  Try a different URL.";
                         }
                     }
 
@@ -148,8 +168,8 @@ const init = async () => {
             },
             {
                 type: "number",
-                name: "webPort",
-                message: "What port number do you want for the web server?",
+                name: "nodePort",
+                message: "What port number do you want for the node server?",
                 default: 3001,
             },
             {
@@ -160,8 +180,8 @@ const init = async () => {
             },
             {
                 type: "input",
-                name: "rootUrl",
-                message: "What is your root URL (without the port)?",
+                name: "webRootUrl",
+                message: "What is your root URL (with port if necessary)?",
                 default: "http://localhost",
                 validate: (value) => {
                     try {
@@ -190,7 +210,8 @@ const init = async () => {
 
         settings.config.adminPassword = answers.adminPassword as string;
         settings.config.adminPortNumber = answers.adminPort as number;
-        settings.config.webPortNumber = answers.webPort as number;
+        settings.config.nodePortNumber = answers.nodePort as number;
+        settings.config.webRootUrl = answers.webRootUrl as string;
 
         settings.constants.ohEncryptionKey = crypto.randomBytes(16).toString("hex");
         settings.constants.ohTokenAudience = crypto.randomBytes(32).toString("hex");
@@ -246,12 +267,16 @@ const init = async () => {
         );
     }
 
-    if (args.argv.webPort) {
-        serverSettings.config.webPortNumber = args.argv.webPort as number;
+    if (args.argv.nodePort) {
+        serverSettings.config.nodePortNumber = args.argv.nodePort as number;
     }
 
     if (args.argv.adminPort) {
         serverSettings.config.adminPortNumber = args.argv.adminPort as number;
+    }
+
+    if (args.argv.webRootUrl) {
+        serverSettings.config.webRootUrl = args.argv.webRootUrl as string;
     }
 
     global.omnihive.serverSettings = serverSettings;

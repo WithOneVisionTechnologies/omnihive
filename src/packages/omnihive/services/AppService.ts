@@ -138,6 +138,7 @@ export class AppService {
                 removeCommand.append("yarn remove ");
 
                 packagesToRemove.forEach((packageName: string, index: number) => {
+                    logService.write(OmniHiveLogLevel.Info, `Removing ${packageName} As a Custom Package(s)`);
                     removeCommand.append(packageName);
 
                     if (index < packagesToRemove.length - 1) {
@@ -184,6 +185,7 @@ export class AppService {
                 addCommand.append("yarn add ");
 
                 packagesToAdd.forEach((packageName: string, index: number) => {
+                    logService.write(OmniHiveLogLevel.Info, `Adding ${packageName} As a Custom Package(s)`);
                     addCommand.append(packageName);
 
                     if (index < packagesToAdd.length - 1) {

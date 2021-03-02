@@ -14,7 +14,6 @@ declare global {
             omnihive: {
                 adminServer: socketio.Server;
                 appServer: express.Express | undefined;
-                getWebRootUrlWithPort: () => string;
                 getWorker: <T extends IHiveWorker | undefined>(type: string, name?: string) => T | undefined;
                 initWorkers: (configs: HiveWorker[]) => Promise<void>;
                 ohDirName: string;

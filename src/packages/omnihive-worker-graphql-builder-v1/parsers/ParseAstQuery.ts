@@ -24,7 +24,7 @@ import {
     GraphQLResolveInfo,
     SelectionNode,
 } from "graphql";
-import { default as Knex, default as knex } from "knex";
+import knex from "knex";
 import _ from "lodash";
 import { WhereMode } from "../enum/WhereModes";
 import { GraphHelper } from "../helpers/GraphHelper";
@@ -37,7 +37,7 @@ export class ParseAstQuery {
     private cacheWorker!: ICacheWorker | undefined;
     private dateWorker!: IDateWorker | undefined;
     private parentPath!: GraphQLField<any, any>;
-    private knex!: Knex;
+    private knex!: knex;
     private query!: knex.QueryBuilder;
     private currentTableIndex: number = 0;
     private currentFieldIndex: number = 0;

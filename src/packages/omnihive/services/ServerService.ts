@@ -72,7 +72,7 @@ export class ServerService {
 
             app.get("/", (_req, res) => {
                 res.status(200).render("index", {
-                    rootUrl: global.omnihive.getWebRootUrlWithPort(),
+                    rootUrl: global.omnihive.serverSettings.config.webRootUrl,
                     registeredUrls: global.omnihive.registeredUrls,
                     status: global.omnihive.serverStatus,
                     error: global.omnihive.serverError,
@@ -80,12 +80,12 @@ export class ServerService {
             });
 
             app.use((_req, res) => {
-                return res.status(404).render("404", { rootUrl: global.omnihive.getWebRootUrlWithPort() });
+                return res.status(404).render("404", { rootUrl: global.omnihive.serverSettings.config.webRootUrl });
             });
 
             app.use((err: any, _req: any, res: any, _next: any) => {
                 return res.status(500).render("500", {
-                    rootUrl: global.omnihive.getWebRootUrlWithPort(),
+                    rootUrl: global.omnihive.serverSettings.config.webRootUrl,
                     error: serializeError(err),
                 });
             });
@@ -119,7 +119,7 @@ export class ServerService {
             app.get("/", (_req, res) => {
                 res.setHeader("Content-Type", "application/json");
                 return res.status(200).render("index", {
-                    rootUrl: global.omnihive.getWebRootUrlWithPort(),
+                    rootUrl: global.omnihive.serverSettings.config.webRootUrl,
                     status: global.omnihive.serverStatus,
                     error: global.omnihive.serverError,
                 });
@@ -132,10 +132,10 @@ export class ServerService {
         global.omnihive.webServer?.removeAllListeners().close();
         global.omnihive.webServer = server;
 
-        global.omnihive.webServer?.listen(global.omnihive.serverSettings.config.webPortNumber, () => {
+        global.omnihive.webServer?.listen(global.omnihive.serverSettings.config.nodePortNumber, () => {
             logService.write(
                 OmniHiveLogLevel.Info,
-                `New Server Listening on process ${process.pid} using port ${global.omnihive.serverSettings.config.webPortNumber}`
+                `New Server Listening on process ${process.pid} using port ${global.omnihive.serverSettings.config.nodePortNumber}`
             );
         });
 
@@ -191,7 +191,7 @@ export class ServerService {
             openapi: "3.0.0",
             servers: [
                 {
-                    url: `${global.omnihive.getWebRootUrlWithPort()}${restRoot}`,
+                    url: `${global.omnihive.serverSettings.config.webRootUrl}${restRoot}`,
                 },
             ],
             paths: {},
@@ -241,7 +241,7 @@ export class ServerService {
                             }
                         } catch (e) {
                             return res.status(500).render("500", {
-                                rootUrl: global.omnihive.getWebRootUrlWithPort(),
+                                rootUrl: global.omnihive.serverSettings.config.webRootUrl,
                                 error: serializeError(e),
                             });
                         }
@@ -249,7 +249,7 @@ export class ServerService {
                 );
 
                 global.omnihive.registeredUrls.push({
-                    path: `${global.omnihive.getWebRootUrlWithPort()}${restRoot}/rest/${workerMetaData.urlRoute}`,
+                    path: `${global.omnihive.serverSettings.config.webRootUrl}${restRoot}/rest/${workerMetaData.urlRoute}`,
                     type: RegisteredUrlType.RestFunction,
                 });
 
@@ -267,7 +267,7 @@ export class ServerService {
         app.use(`${restRoot}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerDefinition));
 
         global.omnihive.registeredUrls.push({
-            path: `${global.omnihive.serverSettings.config.rootUrl}${restRoot}/api-docs`,
+            path: `${global.omnihive.serverSettings.config.webRootUrl}${restRoot}/api-docs`,
             type: RegisteredUrlType.Swagger,
         });
 

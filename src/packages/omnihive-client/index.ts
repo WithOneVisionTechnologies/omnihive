@@ -30,7 +30,11 @@ export class OmniHiveClient extends WorkerSetterBase {
         return new OmniHiveClient();
     };
 
-    public init = async (serverSettings: ServerSettings): Promise<void> => {
+    public init = async (serverSettings?: ServerSettings): Promise<void> => {
+        if (!serverSettings) {
+            return;
+        }
+
         this.serverSettings = serverSettings;
         this.initWorkers(serverSettings.workers);
     };
