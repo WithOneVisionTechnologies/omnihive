@@ -26,6 +26,7 @@
         "build:app": "NODE_ENV=production yarn run webpack --mode production",
         "build:package": "tsc",
         "cli:debug": "nodemon --no-stdin --config ./nodemon.cli.json",
+        "cli:debug:taskRunner": "nodemon --no-stdin --config ./nodemon.taskRunner.json",
         "server:debug": "concurrently \"yarn run watch:react\" \"yarn run watch:node\"",
         "watch:react": "webpack --watch --mode development",
         "watch:node": "nodemon --no-stdin --config ./nodemon.server.json"

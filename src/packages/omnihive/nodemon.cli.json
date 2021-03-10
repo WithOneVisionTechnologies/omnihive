@@ -1,6 +1,6 @@
 {
     "ignore": ["**/*.test.ts", "**/*.spec.ts", "**/*.git"],
     "watch": ["../**/*.ts"],
-    "exec": "yarn node --inspect=127.0.0.1:9228 -r dotenv/config -r ts-node/register ./omnihive.ts init",
+    "exec": "yarn node --inspect=127.0.0.1:9228 -r dotenv/config -r ts-node/register ./omnihive.ts",
     "ext": "ts"
 }

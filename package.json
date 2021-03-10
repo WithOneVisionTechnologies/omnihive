@@ -22,6 +22,7 @@
         "build:main:patch": "DOTENV_CONFIG_PATH=\"./settings/.env\" yarn node -r dotenv/config -r ts-node/register ./build.ts -c main -t patch",
         "build:main:patch:publish": "DOTENV_CONFIG_PATH=\"./settings/.env\" yarn node -r dotenv/config -r ts-node/register ./build.ts -c main -t patch -p",
         "cli:debug": "cd src/packages/omnihive && yarn run cli:debug",
+        "cli:debug:taskRunner": "cd src/packages/omnihive && yarn run cli:debug:taskRunner",
         "doctor": "yarn dlx @yarnpkg/doctor",
         "server:debug": "cd src/packages/omnihive && yarn run server:debug",
         "test": "DOTENV_CONFIG_PATH=\"./settings/.env\" nyc mocha -r dotenv/config -r ts-node/register 'src/packages/**/tests/**/*.ts' --inspect=127.0.0.1:9228 --timeout 5000 --retries 5 --colors",

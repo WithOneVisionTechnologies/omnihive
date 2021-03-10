@@ -49,9 +49,9 @@ export class TaskRunnerService {
         // Try running the worker
         try {
             if (!(workerArgs === null || workerArgs === undefined)) {
-                await taskWorker.instance(workerArgs);
+                await taskWorker.instance.execute(workerArgs);
             } else {
-                await taskWorker.instance();
+                await taskWorker.instance.execute();
             }
         } catch (err) {
             this.logError(worker, err);

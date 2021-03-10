@@ -110,7 +110,7 @@ const init = async () => {
                 .option("args", {
                     alias: "a",
                     type: "string",
-                    demandOption: true,
+                    demandOption: false,
                     description: "Full path to JSON args file",
                 })
                 .check((args) => {
