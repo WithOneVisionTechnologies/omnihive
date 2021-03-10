@@ -27,7 +27,7 @@ self-coverage/
 needs-transpile.js
 
 # misc
-.DS_Store
+**/.DS_Store
 **/*.env
 
 npm-debug.log*
