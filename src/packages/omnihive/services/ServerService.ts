@@ -152,7 +152,7 @@ export class ServerService {
     public getCleanAppServer = async (): Promise<express.Express> => {
         const logService: LogService = new LogService();
 
-        const restRoot: string = `/ohAdmin`;
+        const adminRoot: string = `/ohAdmin`;
 
         // Build app
         global.omnihive.registeredUrls = [];
@@ -176,8 +176,20 @@ export class ServerService {
 
         // Setup Pug
         app.set("view engine", "pug");
-        app.set("views", path.join(global.omnihive.ohDirName, `views`));
-        app.use("/public", express.static(path.join(global.omnihive.ohDirName, `public`)));
+        app.set("views", path.join(global.omnihive.ohDirName, `app`, `views`));
+        app.use("/public", express.static(path.join(global.omnihive.ohDirName, `app`, `public`)));
+
+        app.get(`${adminRoot}/web`, (_req, res) => {
+            return res.status(200).render("reactAdmin", {
+                rootUrl: global.omnihive.serverSettings.config.webRootUrl,
+            });
+        });
+
+        app.get(`${adminRoot}/web/*`, (_req, res) => {
+            return res.status(200).render("reactAdmin", {
+                rootUrl: global.omnihive.serverSettings.config.webRootUrl,
+            });
+        });
 
         // Register system REST endpoints
 
@@ -191,7 +203,7 @@ export class ServerService {
             openapi: "3.0.0",
             servers: [
                 {
-                    url: `${global.omnihive.serverSettings.config.webRootUrl}${restRoot}`,
+                    url: `${global.omnihive.serverSettings.config.webRootUrl}${adminRoot}/rest`,
                 },
             ],
             paths: {},
@@ -223,7 +235,7 @@ export class ServerService {
                 const workerInstance: IRestEndpointWorker = rw.instance as IRestEndpointWorker;
 
                 app[workerMetaData.restMethod](
-                    `${restRoot}/rest/${workerMetaData.urlRoute}`,
+                    `${adminRoot}/rest/${workerMetaData.urlRoute}`,
                     async (req: express.Request, res: express.Response) => {
                         res.setHeader("Content-Type", "application/json");
 
@@ -249,8 +261,9 @@ export class ServerService {
                 );
 
                 global.omnihive.registeredUrls.push({
-                    path: `${global.omnihive.serverSettings.config.webRootUrl}${restRoot}/rest/${workerMetaData.urlRoute}`,
+                    path: `${global.omnihive.serverSettings.config.webRootUrl}${adminRoot}/rest/${workerMetaData.urlRoute}`,
                     type: RegisteredUrlType.RestFunction,
+                    metadata: {},
                 });
 
                 const workerSwagger: swaggerUi.JsonObject | undefined = workerInstance.getSwaggerDefinition();
@@ -264,11 +277,19 @@ export class ServerService {
                 }
             });
 
-        app.use(`${restRoot}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerDefinition));
+        app.get(`${adminRoot}/api-docs/swagger.json`, async (_req: express.Request, res: express.Response) => {
+            res.setHeader("Content-Type", "application/json");
+            return res.status(200).json(swaggerDefinition);
+        });
+
+        app.use(`${adminRoot}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerDefinition));
 
         global.omnihive.registeredUrls.push({
-            path: `${global.omnihive.serverSettings.config.webRootUrl}${restRoot}/api-docs`,
+            path: `${global.omnihive.serverSettings.config.webRootUrl}${adminRoot}/api-docs`,
             type: RegisteredUrlType.Swagger,
+            metadata: {
+                swaggerJsonUrl: `${global.omnihive.serverSettings.config.webRootUrl}${adminRoot}/api-docs/swagger.json`,
+            },
         });
 
         return app;

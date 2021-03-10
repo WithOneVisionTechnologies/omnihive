@@ -58,7 +58,6 @@ export class GraphHelper {
             return parseFloat(cellValue);
         },
         BOOLEAN(cellValue: any) {
-            // tslint:disable-next-line: triple-equals
             return cellValue == true;
         },
     } as ITypeHandlers;
@@ -107,7 +106,6 @@ export class GraphHelper {
         } else if (Array.isArray(data)) {
             table = data;
         } else {
-            // tslint:disable-next-line: max-line-length
             throw Error(
                 `nest expects param data to be in the form of a plain object or an array of plain objects (forming a table)`
             );
@@ -280,7 +278,6 @@ export class GraphHelper {
         // struct is populated inside the build function
         this.struct = null;
 
-        // tslint:disable-next-line: no-console
         if (verbose) {
             console.log(meta);
         }
@@ -412,7 +409,6 @@ export class GraphHelper {
 
         // internally defines recursive function with extra param. This allows cleaner API
         const recursiveBuildMeta = (
-            // tslint:disable-next-line: no-shadowed-variable
             structPropToColumnMap: IDefinition,
             isOneOfMany: boolean,
             containingColumn: string[] | null,
@@ -542,7 +538,6 @@ export class GraphHelper {
 
         if (Array.isArray(structPropToColumnMap)) {
             if (structPropToColumnMap.length !== 1) {
-                // tslint:disable-next-line: max-line-length
                 throw new Error(
                     `invalid structPropToColumnMap format - can not have multiple roots for structPropToColumnMap, if an array it must only have one item`
                 );

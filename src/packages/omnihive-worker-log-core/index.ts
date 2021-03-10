@@ -1,3 +1,5 @@
+/// <reference path="../../types/globals.omnihive.d.ts" />
+
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { IFeatureWorker } from "@withonevision/omnihive-core/interfaces/IFeatureWorker";

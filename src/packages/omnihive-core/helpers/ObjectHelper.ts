@@ -7,6 +7,7 @@ export class ObjectHelper {
         }
 
         Object.keys(model).forEach((key: string) => {
+            // @ts-ignore
             if (key in generic) {
                 (generic as any)[key] = model[key];
             }
@@ -23,6 +24,7 @@ export class ObjectHelper {
         }
 
         Object.keys(model).forEach((key: string) => {
+            // @ts-ignore
             if (key in generic) {
                 (generic as any)[key] = model[key];
             } else {

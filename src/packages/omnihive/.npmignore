@@ -10,6 +10,5 @@ nodemon.*.json
 !*.js.map
 !*.map
 
-#Pug
-!public/
-!views/
+#Web
+!app/

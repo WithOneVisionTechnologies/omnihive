@@ -61,7 +61,7 @@ const init = async () => {
                     alias: "w",
                     type: "string",
                     demandOption: false,
-                    description: "Web Root URL",
+                    description: "Web Root URL (with port number if necessary)",
                 })
                 .check((args) => {
                     if (args.settings) {
@@ -182,7 +182,7 @@ const init = async () => {
                 type: "input",
                 name: "webRootUrl",
                 message: "What is your root URL (with port if necessary)?",
-                default: "http://localhost",
+                default: "http://localhost:3001",
                 validate: (value) => {
                     try {
                         const url = new URL(value);
@@ -218,7 +218,8 @@ const init = async () => {
         settings.constants.ohTokenSecret = crypto.randomBytes(32).toString("hex");
 
         fse.writeFileSync(answers.path as string, JSON.stringify(settings));
-        config.set("latest-settings", answers.path as string);
+        config.clear();
+        config.set<string>("latest-settings", answers.path as string);
 
         console.log(chalk.green("OmniHive Server init complete!  Booting the server now..."));
         console.log();
@@ -228,7 +229,8 @@ const init = async () => {
         let continueSettingsSearch: boolean = true;
 
         if (args.argv.settings && !StringHelper.isNullOrWhiteSpace(args.argv.settings as string)) {
-            config.set("latest-settings", args.argv.settings as string);
+            config.clear();
+            config.set<string>("latest-settings", args.argv.settings as string);
             finalSettings = args.argv.settings as string;
             continueSettingsSearch = false;
         }
@@ -238,11 +240,13 @@ const init = async () => {
             process.env.omnihive_settings &&
             !StringHelper.isNullOrWhiteSpace(process.env.omnihive_settings)
         ) {
+            config.clear();
+            config.set<string>("latest-settings", process.env.omnihive_settings as string);
             finalSettings = process.env.omnihive_settings as string;
             continueSettingsSearch = false;
         }
 
-        if (continueSettingsSearch && latestConf && !StringHelper.isNullOrWhiteSpace(latestConf)) {
+        if (continueSettingsSearch && !finalSettings && latestConf && !StringHelper.isNullOrWhiteSpace(latestConf)) {
             finalSettings = latestConf;
             continueSettingsSearch = false;
         }

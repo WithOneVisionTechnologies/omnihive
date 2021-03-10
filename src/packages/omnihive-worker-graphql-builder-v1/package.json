@@ -25,15 +25,15 @@
     "dependencies": {
         "@withonevision/omnihive-core": "workspace:*",
         "graphql": "15.5.0",
-        "knex": "0.21.17",
-        "lodash": "4.17.20",
+        "knex": "0.21.19",
+        "lodash": "4.17.21",
         "pluralize": "8.0.0",
         "serialize-error": "8.0.1"
     },
     "devDependencies": {
         "@types/lodash": "4.14.168",
         "@types/pluralize": "0.0.29",
-        "chai": "4.2.0",
-        "typescript": "4.1.3"
+        "chai": "4.3.3",
+        "typescript": "4.2.2"
     }
 }

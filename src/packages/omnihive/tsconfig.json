@@ -1,3 +1,13 @@
 {
-    "extends": "../../../tsconfig.json"
+    "extends": "../../../tsconfig.json",
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "outDir": "../../../dist/packages/omnihive",
+        "rootDir": "."
+    },
+    "paths": {
+        "@withonevision/*": ["../../packages/*"]
+    },
+    "include": ["./**/*.ts", "./**/*.tsx"],
+    "exclude": ["./tests/**/*"]
 }

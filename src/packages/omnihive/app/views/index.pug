@@ -5,12 +5,12 @@ html
         +head(rootUrl)
         script.
             var status = "#{status}";
-            var error = "#{error}";
+            var error = !{JSON.stringify(error)};
             var registeredUrls = !{JSON.stringify(registeredUrls)};
 
             console.log(`OH STATUS: ${status}`);
 
-            if (!error || error === "") {
+            if (!error || error === "" || error === "{}") {
                 console.log(`OH ERROR: NONE`);
             } else {
                 console.log(`OH ERROR: ${error}`);

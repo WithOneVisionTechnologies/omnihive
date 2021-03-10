@@ -7,6 +7,9 @@ import { LogService } from "./LogService";
 import { ServerService } from "./ServerService";
 import nodeCleanup from "node-cleanup";
 import { ServerStatus } from "@withonevision/omnihive-core/enums/ServerStatus";
+import { ServerSettings } from "src/packages/omnihive-core/models/ServerSettings";
+import Conf from "conf";
+import fse from "fs-extra";
 
 export class AdminService {
     public run = async () => {
@@ -22,6 +25,67 @@ export class AdminService {
         });
 
         global.omnihive.adminServer.on("connection", (socket: socketio.Socket) => {
+            socket.on("config-request", (request: { adminPassword: string }) => {
+                if (
+                    !request ||
+                    !request.adminPassword ||
+                    StringHelper.isNullOrWhiteSpace(request.adminPassword) ||
+                    request.adminPassword !== global.omnihive.serverSettings.config.adminPassword
+                ) {
+                    socket.emit("config-response", {
+                        requestComplete: false,
+                        requestError: "Invalid Password",
+                        config: {},
+                    });
+
+                    return;
+                }
+
+                socket.emit("config-response", {
+                    requestComplete: true,
+                    requestError: "",
+                    config: global.omnihive.serverSettings,
+                });
+            });
+
+            socket.on("config-save-request", (request: { adminPassword: string; config: ServerSettings }) => {
+                if (
+                    !request ||
+                    !request.adminPassword ||
+                    StringHelper.isNullOrWhiteSpace(request.adminPassword) ||
+                    request.adminPassword !== global.omnihive.serverSettings.config.adminPassword
+                ) {
+                    socket.emit("config-save-response", {
+                        requestComplete: false,
+                        requestError: "Invalid Password",
+                        verified: false,
+                    });
+
+                    return;
+                }
+
+                try {
+                    const config = new Conf();
+                    const latestConf: string | undefined = config.get<string>("latest-settings") as string;
+                    const settings: ServerSettings = request.config as ServerSettings;
+                    fse.writeFileSync(latestConf, JSON.stringify(settings));
+
+                    socket.emit("config-save-response", {
+                        requestComplete: true,
+                        requestError: "",
+                        verified: true,
+                    });
+                } catch {
+                    socket.emit("config-save-response", {
+                        requestComplete: false,
+                        requestError: "Invalid Password",
+                        verified: false,
+                    });
+
+                    return;
+                }
+            });
+
             socket.on("refresh-request", (request: { adminPassword: string; refresh?: boolean }) => {
                 if (
                     !request ||

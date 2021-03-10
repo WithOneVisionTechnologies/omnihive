@@ -316,6 +316,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                         global.omnihive.registeredUrls.push({
                             path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
                             type: RegisteredUrlType.GraphDatabase,
+                            metadata: {},
                         });
                     }
                 }
@@ -368,6 +369,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                 global.omnihive.registeredUrls.push({
                     path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
                     type: RegisteredUrlType.GraphFunction,
+                    metadata: {},
                 });
             }
 
@@ -450,6 +452,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     global.omnihive.registeredUrls.push({
                         path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/${workerMetaData.urlRoute}`,
                         type: RegisteredUrlType.RestFunction,
+                        metadata: {},
                     });
 
                     const workerSwagger: swaggerUi.JsonObject | undefined = workerInstance.getSwaggerDefinition();
@@ -464,6 +467,14 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                 });
 
                 if (((await featureWorker?.get<boolean>("swagger")) ?? true) && restWorkers.length > 0) {
+                    app.get(
+                        `/${this.metadata.urlRoute}/custom/rest/api-docs/swagger.json`,
+                        async (_req: express.Request, res: express.Response) => {
+                            res.setHeader("Content-Type", "application/json");
+                            return res.status(200).json(swaggerDefinition);
+                        }
+                    );
+
                     app.use(
                         `/${this.metadata.urlRoute}/custom/rest/api-docs`,
                         swaggerUi.serve,
@@ -473,6 +484,9 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     global.omnihive.registeredUrls.push({
                         path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs`,
                         type: RegisteredUrlType.Swagger,
+                        metadata: {
+                            swaggerJsonUrl: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs/swagger.json`,
+                        },
                     });
                 }
             }
