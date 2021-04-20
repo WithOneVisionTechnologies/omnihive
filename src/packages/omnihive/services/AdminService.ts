@@ -43,7 +43,7 @@ export class AdminService {
         global.omnihive.adminServer.on("connection", (ws: WebSocket) => {
             (ws as ExtendedWebSocket).isAlive = true;
 
-            ws.on("pong", (ws: WebSocket) => {
+            ws.on("heartbeat", (ws: WebSocket) => {
                 this.heartbeat(ws);
             });
 
@@ -264,7 +264,7 @@ export class AdminService {
                 }
 
                 (ws as ExtendedWebSocket).isAlive = false;
-                ws.ping(this.noop);
+                ws.send("heartbeat");
             });
         }, 20000);
 
