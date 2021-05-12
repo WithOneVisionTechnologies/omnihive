@@ -23,7 +23,7 @@ export default class JsonWebTokenWorker extends HiveWorkerBase implements IToken
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute<void>(super.init(config));
+        await AwaitHelper.execute(super.init(config));
 
         try {
             this.metadata = this.checkObjectStructure<JsonWebTokenWorkerMetadata>(
@@ -53,7 +53,7 @@ export default class JsonWebTokenWorker extends HiveWorkerBase implements IToken
     };
 
     public expired = async (token: string): Promise<boolean> => {
-        return !(await this.verify(token));
+        return !(await AwaitHelper.execute(this.verify(token)));
     };
 
     public verify = async (accessToken: string): Promise<boolean> => {

@@ -1,13 +1,13 @@
-import { ServerStatus } from "@withonevision/omnihive-core/enums/ServerStatus";
-import { RegisteredUrl } from "@withonevision/omnihive-core/models/RegisteredUrl";
+import { ServerStatus } from "src/packages/omnihive-core/enums/ServerStatus";
+import { RegisteredUrl } from "src/packages/omnihive-core/models/RegisteredUrl";
 import express from "express";
 import { Server } from "http";
-import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
-import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
-import { ServerSettings } from "@withonevision/omnihive-core/models/ServerSettings";
-import { IHiveWorker } from "@withonevision/omnihive-core/interfaces/IHiveWorker";
+import { ConnectionSchema } from "src/packages/omnihive-core/models/ConnectionSchema";
+import { RegisteredHiveWorker } from "src/packages/omnihive-core/models/RegisteredHiveWorker";
+import { ServerSettings } from "src/packages/omnihive-core/models/ServerSettings";
+import { IHiveWorker } from "src/packages/omnihive-core/interfaces/IHiveWorker";
 import WebSocket from "ws";
-import { CommandLineArguments } from "src/packages/omnihive/models/CommandLineArguments";
+import { CommandLineArgs } from "src/packages/omnihive/models/CommandLineArgs";
 
 declare global {
     declare namespace NodeJS {
@@ -17,10 +17,9 @@ declare global {
                 adminServerTimer: NodeJS.Timer;
                 appServer: express.Express | undefined;
                 bootWorkerNames: string[];
-                commandLineArgs: CommandLineArguments;
+                commandLineArgs: CommandLineArgs;
                 getWorker: <T extends IHiveWorker | undefined>(type: string, name?: string) => T | undefined;
                 initWorkers: (configs: HiveWorker[]) => Promise<void>;
-                instanceName: string;
                 ohDirName: string;
                 pushWorker: (hiveWorker: HiveWorker, isBoot: boolean = false, isCore: boolean = false) => Promise<void>;
                 registeredSchemas: ConnectionSchema[];

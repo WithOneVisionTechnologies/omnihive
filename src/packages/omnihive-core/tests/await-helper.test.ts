@@ -15,7 +15,7 @@ describe("AwaitHelper Tests", async function () {
 
     it("standard call", async function () {
         try {
-            const result = await AwaitHelper.execute<string>(successFunction(50));
+            const result = await AwaitHelper.execute(successFunction(50));
             assert.equal(result, testString);
         } catch (err) {
             throw new Error(JSON.stringify(serializeError(err)));
@@ -24,7 +24,7 @@ describe("AwaitHelper Tests", async function () {
 
     it("failure call", async function () {
         try {
-            await AwaitHelper.execute<string>(failFunction(50));
+            await AwaitHelper.execute(failFunction(50));
             assert.fail("Function should have failed");
         } catch (err) {
             assert.equal(err, testString);

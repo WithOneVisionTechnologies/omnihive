@@ -21,7 +21,7 @@ import { RegisteredUrl } from "../models/RegisteredUrl";
 import { RestEndpointExecuteResponse } from "../models/RestEndpointExecuteResponse";
 import { ServerConfigSettings } from "../models/ServerConfigSettings";
 import { ServerSettings } from "../models/ServerSettings";
-import { StoredProcSchema } from "../models/StoredProcSchema";
+import { ProcFunctionSchema } from "../models/ProcFunctionSchema";
 import { TableSchema } from "../models/TableSchema";
 import { WorkerGetterBase } from "../models/WorkerGetterBase";
 import { WorkerSetterBase } from "../models/WorkerSetterBase";
@@ -90,8 +90,8 @@ describe("model tests", function () {
         assert.isTrue(test.workerName === "", "workerName not initialized properly");
         assert.isTrue(Array.isArray(test.tables), "tables not initialized properly");
         assert.isTrue(test.tables.length === 0, "tables array over populated when initialized");
-        assert.isTrue(Array.isArray(test.storedProcs), "storedProcs not initialized properly");
-        assert.isTrue(test.storedProcs.length === 0, "storedProcs array is over populated when initialized");
+        assert.isTrue(Array.isArray(test.procFunctions), "procs not initialized properly");
+        assert.isTrue(test.procFunctions.length === 0, "procs array is over populated when initialized");
     });
 
     it("ConverterSqlInfo", function () {
@@ -153,7 +153,7 @@ describe("model tests", function () {
         assert.isTrue(test.password === "", "password not initialized properly");
         assert.isTrue(test.rowLimit === 0, "rowLimit not initialized properly");
         assert.isTrue(test.serverAddress === "", "serverAddress not initialized properly");
-        assert.isTrue(test.serverPort === "", "serverPort not initialized properly");
+        assert.isTrue(test.serverPort === 0, "serverPort not initialized properly");
         assert.isTrue(test.urlRoute === "", "urlRoute not initialized properly");
         assert.isTrue(test.userName === "", "userName not initialized properly");
     });
@@ -253,16 +253,15 @@ describe("model tests", function () {
         assert.isTrue(test.config.webRootUrl === "", "config.webRootUrl not initialized properly");
     });
 
-    it("StoredProcSchema", function () {
-        const test = new StoredProcSchema();
+    it("ProcFunctionSchema", function () {
+        const test = new ProcFunctionSchema();
 
-        assert.isTrue(test.schema === "", "schema not initialized properly");
-        assert.isTrue(test.storedProcName === "", "storedProcName not initialized properly");
-        assert.isTrue(test.parameterId === 0, "parameterId not initialized properly");
+        assert.isTrue(test.schemaName === "", "schema not initialized properly");
+        assert.isTrue(test.name === "", "name not initialized properly");
+        assert.isTrue(test.parameterOrder === 0, "parameterOrder not initialized properly");
         assert.isTrue(test.parameterName === "", "parameterName not initialized properly");
         assert.isTrue(test.parameterTypeDatabase === "", "parameterTypeDatabase not initialized properly");
         assert.isTrue(test.parameterTypeEntity === "", "parameterTypeEntity not initialized properly");
-        assert.isTrue(test.parameterMaxBytes === 0, "parameterMaxBytes not initialized properly");
     });
 
     it("TableSchema", function () {
@@ -275,6 +274,7 @@ describe("model tests", function () {
         assert.isTrue(test.columnNameEntity === "", "columnNameEntity not initialized properly");
         assert.isTrue(test.columnTypeDatabase === "", "columnTypeDatabase not initialized properly");
         assert.isTrue(test.columnTypeEntity === "", "columnTypeEntity not initialized properly");
+        assert.isTrue(test.columnPosition === 0, "columnPosition not initialized properly");
         assert.isTrue(test.columnIsNullable === true, "columnIsNullable not initialized properly");
         assert.isTrue(test.columnIsIdentity === false, "columnIsIdentity not initialized properly");
         assert.isTrue(test.columnIsPrimaryKey === false, "columnIsPrimaryKey not initialized properly");

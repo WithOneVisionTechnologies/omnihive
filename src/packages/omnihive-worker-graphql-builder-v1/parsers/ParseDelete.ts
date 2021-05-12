@@ -38,7 +38,12 @@ export class ParseDelete {
             HiveWorkerType.Feature
         );
 
-        const disableSecurity: boolean = (await featureWorker?.get<boolean>("disableSecurity", false)) ?? false;
+        let disableSecurity: boolean = false;
+
+        if (featureWorker) {
+            disableSecurity =
+                (await AwaitHelper.execute(featureWorker?.get<boolean>("disableSecurity", false))) ?? false;
+        }
 
         const tokenWorker: ITokenWorker | undefined = global.omnihive.getWorker<ITokenWorker | undefined>(
             HiveWorkerType.Token
@@ -63,7 +68,7 @@ export class ParseDelete {
             omniHiveContext.access &&
             !StringHelper.isNullOrWhiteSpace(omniHiveContext.access)
         ) {
-            const verifyToken: boolean = await AwaitHelper.execute<boolean>(tokenWorker.verify(omniHiveContext.access));
+            const verifyToken: boolean = await AwaitHelper.execute(tokenWorker.verify(omniHiveContext.access));
             if (verifyToken === false) {
                 throw new Error("[ohAccessError] Access token is invalid or expired.");
             }
@@ -132,6 +137,6 @@ export class ParseDelete {
             }
         });
 
-        return await queryBuilder.del();
+        return await AwaitHelper.execute(queryBuilder.del());
     };
 }

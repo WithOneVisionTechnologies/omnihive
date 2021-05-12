@@ -4,13 +4,14 @@ import dayjs from "dayjs";
 import figlet from "figlet";
 import fse from "fs-extra";
 import path from "path";
-import readPkgUp from "read-pkg-up";
+import readPkgUp, { NormalizedReadResult } from "read-pkg-up";
 import replaceInFile, { ReplaceInFileConfig } from "replace-in-file";
 import semver from "semver";
 import tar from "tar";
 import writePkg from "write-pkg";
 import yargs from "yargs";
 import axios from "axios";
+import { AwaitHelper } from "src/packages/omnihive-core/helpers/AwaitHelper";
 
 // Elastic version record
 type Version = {
@@ -235,9 +236,11 @@ const build = async (): Promise<void> => {
     //Remove non-core packages from package.json in server
     console.log(chalk.yellow("Removing non-core packages from OmniHive package.json..."));
 
-    const packageJson: readPkgUp.NormalizedReadResult | undefined = await readPkgUp({
-        cwd: path.join(`.`, `dist`, `packages`, `omnihive`),
-    });
+    const packageJson: NormalizedReadResult | undefined = await AwaitHelper.execute(
+        readPkgUp({
+            cwd: path.join(`.`, `dist`, `packages`, `omnihive`),
+        })
+    );
 
     const corePackages: any = packageJson?.packageJson.omniHive.coreDependencies;
     const loadedPackages: any = packageJson?.packageJson.dependencies;

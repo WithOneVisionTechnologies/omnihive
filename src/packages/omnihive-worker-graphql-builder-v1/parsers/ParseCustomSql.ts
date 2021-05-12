@@ -40,11 +40,16 @@ export class ParseCustomSql {
             HiveWorkerType.Feature
         );
 
-        const disableSecurity: boolean = (await featureWorker?.get<boolean>("disableSecurity", false)) ?? false;
-
         const tokenWorker: ITokenWorker | undefined = global.omnihive.getWorker<ITokenWorker | undefined>(
             HiveWorkerType.Token
         );
+
+        let disableSecurity: boolean = false;
+
+        if (featureWorker) {
+            disableSecurity =
+                (await AwaitHelper.execute(featureWorker?.get<boolean>("disableSecurity", false))) ?? false;
+        }
 
         if (!disableSecurity && !tokenWorker) {
             throw new Error("[ohAccessError] No token worker defined.");
@@ -65,13 +70,13 @@ export class ParseCustomSql {
             omniHiveContext.access &&
             !StringHelper.isNullOrWhiteSpace(omniHiveContext.access)
         ) {
-            const verifyToken: boolean = await AwaitHelper.execute<boolean>(tokenWorker.verify(omniHiveContext.access));
+            const verifyToken: boolean = await AwaitHelper.execute(tokenWorker.verify(omniHiveContext.access));
             if (verifyToken === false) {
                 throw new Error("[ohAccessError] Access token is invalid or expired.");
             }
         }
 
         const decryptedSql = encryptionWorker.symmetricDecrypt(encryptedSql);
-        return await AwaitHelper.execute<any[][]>(databaseWorker.executeQuery(decryptedSql));
+        return await AwaitHelper.execute(databaseWorker.executeQuery(decryptedSql));
     };
 }

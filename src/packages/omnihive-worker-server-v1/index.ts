@@ -44,7 +44,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute<void>(super.init(config));
+        await AwaitHelper.execute(super.init(config));
 
         try {
             this.metadata = this.checkObjectStructure<HiveWorkerMetadataServer>(
@@ -111,19 +111,38 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
             for (const worker of dbWorkers) {
                 logWorker?.write(OmniHiveLogLevel.Info, `Retrieving ${worker.registeredWorker.name} Schema`);
 
-                const result: ConnectionSchema = await AwaitHelper.execute<ConnectionSchema>(
+                const dbWorkerMeta = worker.registeredWorker.metadata as HiveWorkerMetadataDatabase;
+                const result: ConnectionSchema = await AwaitHelper.execute(
                     (worker.registeredWorker.instance as IDatabaseWorker).getSchema()
                 );
 
                 result.tables.forEach((schema: TableSchema) => {
-                    schema.tableNameCamelCase = camelCase(schema.tableName);
-                    schema.tableNamePascalCase = StringHelper.capitalizeFirstLetter(camelCase(schema.tableName));
+                    if (dbWorkerMeta.ignoreSchema) {
+                        schema.tableNameCamelCase = camelCase(schema.tableName);
+                        schema.tableNamePascalCase = StringHelper.capitalizeFirstLetter(camelCase(schema.tableName));
+                    } else {
+                        schema.tableNameCamelCase = `${schema.schemaName.toLowerCase()}${StringHelper.capitalizeFirstLetter(
+                            camelCase(schema.tableName)
+                        )}`;
+                        schema.tableNamePascalCase = `${StringHelper.capitalizeFirstLetter(
+                            schema.schemaName.toLowerCase()
+                        )}${StringHelper.capitalizeFirstLetter(camelCase(schema.tableName))}`;
+                    }
 
                     if (schema.columnIsForeignKey) {
-                        schema.columnForeignKeyTableNameCamelCase = camelCase(schema.columnForeignKeyTableName);
-                        schema.columnForeignKeyTableNamePascalCase = StringHelper.capitalizeFirstLetter(
-                            camelCase(schema.columnForeignKeyTableName)
-                        );
+                        if (dbWorkerMeta.ignoreSchema) {
+                            schema.columnForeignKeyTableNameCamelCase = camelCase(schema.columnForeignKeyTableName);
+                            schema.columnForeignKeyTableNamePascalCase = StringHelper.capitalizeFirstLetter(
+                                camelCase(schema.columnForeignKeyTableName)
+                            );
+                        } else {
+                            schema.columnForeignKeyTableNameCamelCase = `${schema.schemaName.toLowerCase()}${StringHelper.capitalizeFirstLetter(
+                                camelCase(schema.columnForeignKeyTableName)
+                            )}`;
+                            schema.columnForeignKeyTableNamePascalCase = `${StringHelper.capitalizeFirstLetter(
+                                camelCase(schema.schemaName)
+                            )}${StringHelper.capitalizeFirstLetter(camelCase(schema.columnForeignKeyTableName))}`;
+                        }
                     }
 
                     let columnWorkingName = camelCase(schema.columnNameDatabase);
@@ -150,7 +169,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                 global.omnihive.registeredSchemas.push({
                     workerName: worker.registeredWorker.name,
                     tables: result.tables,
-                    storedProcs: result.storedProcs,
+                    procFunctions: result.procFunctions,
                 });
             }
 
@@ -273,7 +292,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                             `Graph Progress => ${builder.name} => ${databaseWorker.registeredWorker.name} Query Schema Merged`
                         );
 
-                        const procSchema: any = databaseDynamicModule.FederatedGraphStoredProcSchema;
+                        const procSchema: any = databaseDynamicModule.FederatedGraphProcSchema;
 
                         if (procSchema) {
                             graphDatabaseSchema = mergeSchemas({ schemas: [graphDatabaseSchema, procSchema] });
@@ -281,7 +300,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
 
                         logWorker?.write(
                             OmniHiveLogLevel.Info,
-                            `Graph Progress => ${builder.name} => ${databaseWorker.registeredWorker.name} Stored Proc Schema Merged`
+                            `Graph Progress => ${builder.name} => ${databaseWorker.registeredWorker.name} Proc Schema Merged`
                         );
 
                         const graphDatabaseConfig: ApolloServerExpressConfig = {
@@ -441,10 +460,12 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                             res.setHeader("Content-Type", "application/json");
 
                             try {
-                                const workerResponse: RestEndpointExecuteResponse = await workerInstance.execute(
-                                    req.headers,
-                                    `${req.protocol}://${req.get("host")}${req.originalUrl}`,
-                                    req.body
+                                const workerResponse: RestEndpointExecuteResponse = await AwaitHelper.execute(
+                                    workerInstance.execute(
+                                        req.headers,
+                                        `${req.protocol}://${req.get("host")}${req.originalUrl}`,
+                                        req.body
+                                    )
                                 );
 
                                 if (workerResponse.response) {

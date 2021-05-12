@@ -27,7 +27,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute<void>(super.init(config));
+        await AwaitHelper.execute(super.init(config));
 
         this.metadata = this.checkObjectStructure<AuthZeroTokenWorkerMetadata>(
             AuthZeroTokenWorkerMetadata,
@@ -51,7 +51,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
                 audience: this.metadata.audience,
             };
 
-            this.token = (await this.authClient.clientCredentialsGrant(options)).access_token;
+            this.token = (await AwaitHelper.execute(this.authClient.clientCredentialsGrant(options))).access_token;
             this.token = `${this.metadata.clientId}||${this.token}`;
             return this.token;
         } catch (err) {
@@ -100,9 +100,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
         let jwks: AxiosResponse<any>;
 
         try {
-            jwks = await AwaitHelper.execute<AxiosResponse<any>>(
-                axios.get(`https://${this.metadata.domain}/.well-known/jwks.json`)
-            );
+            jwks = await AwaitHelper.execute(axios.get(`https://${this.metadata.domain}/.well-known/jwks.json`));
         } catch (e) {
             throw new Error("[ohAccessError] JWKS Url Not Responding");
         }
@@ -131,7 +129,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
         let jwkKey: jose.JWK.Key;
 
         try {
-            jwkKey = await AwaitHelper.execute<jose.JWK.Key>(jose.JWK.asKey(keys[keyIndex]));
+            jwkKey = await AwaitHelper.execute(jose.JWK.asKey(keys[keyIndex]));
         } catch (e) {
             throw new Error("[ohAccessError] Invalid key");
         }
@@ -140,9 +138,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
         let jwkVerification: jose.JWS.VerificationResult;
 
         try {
-            jwkVerification = await AwaitHelper.execute<jose.JWS.VerificationResult>(
-                jose.JWS.createVerify(jwkKey).verify(token)
-            );
+            jwkVerification = await AwaitHelper.execute(jose.JWS.createVerify(jwkKey).verify(token));
         } catch (e) {
             throw new Error("[ohAccessError] Signature verification failed");
         }

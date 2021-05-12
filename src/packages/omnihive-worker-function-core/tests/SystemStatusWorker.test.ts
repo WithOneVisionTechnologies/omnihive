@@ -7,6 +7,7 @@ import { TestConfigSettings } from "../../../tests/models/TestConfigSettings";
 import TokenWorker from "../../omnihive-worker-token-jsonwebtoken";
 import SystemStatusWorker from "../SystemStatusWorker";
 import { ServerStatus } from "@withonevision/omnihive-core/enums/ServerStatus";
+import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 const worker = new SystemStatusWorker();
 worker.serverSettings = {
@@ -34,9 +35,10 @@ describe("system status worker tests", () => {
             adminServer: undefined!,
             adminServerTimer: undefined!,
             appServer: undefined!,
+            bootWorkerNames: undefined!,
+            commandLineArgs: undefined!,
             getWorker: undefined!,
             initWorkers: undefined!,
-            instanceName: undefined!,
             ohDirName: undefined!,
             pushWorker: undefined!,
             registeredSchemas: undefined!,
@@ -46,7 +48,6 @@ describe("system status worker tests", () => {
             serverStatus: ServerStatus.Online!,
             serverSettings: undefined!,
             webServer: undefined!,
-            commandLineArgs: undefined!,
         };
     });
     afterEach(() => {
@@ -57,9 +58,10 @@ describe("system status worker tests", () => {
             adminServer: undefined!,
             adminServerTimer: undefined!,
             appServer: undefined!,
+            bootWorkerNames: undefined!,
+            commandLineArgs: undefined!,
             getWorker: undefined!,
             initWorkers: undefined!,
-            instanceName: undefined!,
             ohDirName: undefined!,
             pushWorker: undefined!,
             registeredSchemas: undefined!,
@@ -69,13 +71,12 @@ describe("system status worker tests", () => {
             serverStatus: undefined!,
             serverSettings: undefined!,
             webServer: undefined!,
-            commandLineArgs: undefined!,
         };
     });
     describe("worker functions", () => {
         it("execute - no token worker", async () => {
             try {
-                await worker.execute(undefined, "", undefined);
+                await AwaitHelper.execute(worker.execute(undefined, "", undefined));
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(err.message, "Token Worker cannot be found");
@@ -83,39 +84,43 @@ describe("system status worker tests", () => {
         });
         it("execute - no headers", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
-            const result = await worker.execute(undefined, "", undefined);
+            const result = await AwaitHelper.execute(worker.execute(undefined, "", undefined));
             assert.equal(result.status, 400);
             assert.nestedPropertyVal(result.response, "error.message", "Request Denied");
         });
         it("execute - no body", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
-            const result = await worker.execute({ ohAccess: "mockToken" }, "", undefined);
+            const result = await AwaitHelper.execute(worker.execute({ ohAccess: "mockToken" }, "", undefined));
             assert.equal(result.status, 400);
             assert.nestedPropertyVal(result.response, "error.message", "Request Denied");
         });
         it("execute - no ohAccess token", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
-            const result = await worker.execute({ mockHeader: "mockValue" }, "", {});
+            const result = await AwaitHelper.execute(worker.execute({ mockHeader: "mockValue" }, "", {}));
             assert.equal(result.status, 400);
             assert.nestedPropertyVal(result.response, "error.message", "[ohAccessError] Token Invalid");
         });
         it("execute - no admin password", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
-            const result = await worker.execute({ ohAccess: "mockToken" }, "", {});
+            const result = await AwaitHelper.execute(worker.execute({ ohAccess: "mockToken" }, "", {}));
             assert.equal(result.status, 400);
             assert.nestedPropertyVal(result.response, "error.message", "Request Denied");
         });
         it("execute - incorrect admin password", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
             sinon.stub(worker, "checkObjectStructure").returns({ adminPassword: "mockPassword" });
-            const result = await worker.execute({ ohAccess: "mockToken" }, "", { adminPassword: "mockPassword" });
+            const result = await AwaitHelper.execute(
+                worker.execute({ ohAccess: "mockToken" }, "", { adminPassword: "mockPassword" })
+            );
             assert.equal(result.status, 400);
             assert.nestedPropertyVal(result.response, "error.message", "Request Denied");
         });
         it("execute", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
             sinon.stub(worker, "checkObjectStructure").returns({ adminPassword: "correctPassword" });
-            const result = await worker.execute({ ohAccess: "mockToken" }, "", { adminPassword: "correctPassword" });
+            const result = await AwaitHelper.execute(
+                worker.execute({ ohAccess: "mockToken" }, "", { adminPassword: "correctPassword" })
+            );
             assert.equal(result.status, 200);
             assert.nestedPropertyVal(result.response, "status", ServerStatus.Online);
             assert.nestedPropertyVal(result.response, "error", undefined);

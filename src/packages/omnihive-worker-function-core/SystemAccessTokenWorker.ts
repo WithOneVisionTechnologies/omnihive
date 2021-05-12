@@ -26,7 +26,7 @@ export default class SystemAccessTokenWorker extends HiveWorkerBase implements I
 
         try {
             this.checkRequest(body);
-            const token = await AwaitHelper.execute<string>(this.tokenWorker.get());
+            const token = await AwaitHelper.execute(this.tokenWorker.get());
             return { response: { token: token }, status: 200 };
         } catch (e) {
             return { response: { error: serializeError(e) }, status: 400 };
@@ -93,6 +93,7 @@ export default class SystemAccessTokenWorker extends HiveWorkerBase implements I
 
         const hashedConfigMetadata = objectHash(this.tokenWorker.config.metadata, {
             algorithm: this.tokenWorker.config.metadata.hashAlgorithm,
+            respectType: false,
         });
 
         if (!isEqual(hashedConfigMetadata, body.generator)) {

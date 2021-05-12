@@ -9,6 +9,7 @@ import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWork
 import { ClientSettings } from "@withonevision/omnihive-core/models/ClientSettings";
 import { WorkerSetterBase } from "@withonevision/omnihive-core/models/WorkerSetterBase";
 import objectHash from "object-hash";
+import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 export class OmniHiveClient extends WorkerSetterBase {
     private static singleton: OmniHiveClient;
@@ -38,7 +39,7 @@ export class OmniHiveClient extends WorkerSetterBase {
         this.clientSettings = clientSettings;
 
         if (clientSettings && clientSettings.workers && clientSettings.workers.length > 0) {
-            await this.initWorkers(clientSettings.workers);
+            await AwaitHelper.execute(this.initWorkers(clientSettings.workers));
 
             const tokenWorker = this.getWorker<ITokenWorker | undefined>(HiveWorkerType.Token);
 
@@ -250,7 +251,7 @@ export class OmniHiveClient extends WorkerSetterBase {
             }
         `;
 
-        const results: any = await this.graphClient(url, query);
+        const results: any = await AwaitHelper.execute(this.graphClient(url, query));
         return results[target][0].recordset;
     };
 
@@ -268,7 +269,7 @@ export class OmniHiveClient extends WorkerSetterBase {
 
         if (tokenWorker) {
             try {
-                newToken = await tokenWorker.get();
+                newToken = await AwaitHelper.execute(tokenWorker.get());
                 return newToken;
             } catch (e) {
                 throw new Error("[ohAccessError] Could not retrieve token");
@@ -281,6 +282,7 @@ export class OmniHiveClient extends WorkerSetterBase {
                 config.data = {
                     generator: objectHash(this.clientSettings?.tokenMetadata, {
                         algorithm: this.clientSettings?.tokenMetadata.hashAlgorithm,
+                        respectType: false,
                     }),
                 };
                 config.method = "POST";
@@ -304,7 +306,7 @@ export class OmniHiveClient extends WorkerSetterBase {
                     });
             });
 
-            const restReturn: AxiosResponse<{ token: string }> = await restPromise;
+            const restReturn: AxiosResponse<{ token: string }> = await AwaitHelper.execute(restPromise);
 
             if (restReturn.status !== 200) {
                 throw new Error("[ohAccessError] Could not retrieve token");
