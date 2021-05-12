@@ -1,6 +1,5 @@
 export enum HiveWorkerType {
     Cache = "cache",
-    Config = "config",
     Date = "date",
     Database = "database",
     DataLifecycleFunction = "dataLifecycleFunction",

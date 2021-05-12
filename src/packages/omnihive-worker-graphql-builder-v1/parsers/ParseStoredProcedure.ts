@@ -8,10 +8,10 @@ import { IFeatureWorker } from "@withonevision/omnihive-core/interfaces/IFeature
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
 import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
 import { GraphContext } from "@withonevision/omnihive-core/models/GraphContext";
-import { ProcFunctionSchema } from "@withonevision/omnihive-core/models/ProcFunctionSchema";
+import { StoredProcSchema } from "@withonevision/omnihive-core/models/StoredProcSchema";
 import { FieldNode, GraphQLResolveInfo, SelectionNode } from "graphql";
 
-export class ParseProcedure {
+export class ParseStoredProcedure {
     public parse = async (
         workerName: string,
         resolveInfo: GraphQLResolveInfo,
@@ -32,16 +32,11 @@ export class ParseProcedure {
             HiveWorkerType.Feature
         );
 
+        const disableSecurity: boolean = (await featureWorker?.get<boolean>("disableSecurity", false)) ?? false;
+
         const tokenWorker: ITokenWorker | undefined = global.omnihive.getWorker<ITokenWorker | undefined>(
             HiveWorkerType.Token
         );
-
-        let disableSecurity = false;
-
-        if (featureWorker) {
-            disableSecurity =
-                (await AwaitHelper.execute(featureWorker?.get<boolean>("disableSecurity", false))) ?? false;
-        }
 
         if (!disableSecurity && !tokenWorker) {
             throw new Error("[ohAccessError] No token worker defined.");
@@ -62,7 +57,7 @@ export class ParseProcedure {
             omniHiveContext.access &&
             !StringHelper.isNullOrWhiteSpace(omniHiveContext.access)
         ) {
-            const verifyToken: boolean = await AwaitHelper.execute(tokenWorker.verify(omniHiveContext.access));
+            const verifyToken: boolean = await AwaitHelper.execute<boolean>(tokenWorker.verify(omniHiveContext.access));
             if (verifyToken === false) {
                 throw new Error("[ohAccessError] Access token is invalid or expired.");
             }
@@ -71,32 +66,32 @@ export class ParseProcedure {
         const schema: ConnectionSchema | undefined = global.omnihive.registeredSchemas.find(
             (value: ConnectionSchema) => value.workerName === workerName
         );
-        let fullSchema: ProcFunctionSchema[] = [];
+        let fullSchema: StoredProcSchema[] = [];
 
         if (schema) {
-            fullSchema = schema.procFunctions;
+            fullSchema = schema.storedProcs;
         }
 
         const response: { procName: string; results: any[][] }[] = [];
 
-        const procCall: readonly SelectionNode[] = resolveInfo.operation.selectionSet.selections;
+        const storedProcCall: readonly SelectionNode[] = resolveInfo.operation.selectionSet.selections;
 
-        for (const call of procCall) {
+        for (const call of storedProcCall) {
             const callFieldNode = call as FieldNode;
             const inputArgs: readonly SelectionNode[] | undefined = callFieldNode.selectionSet?.selections;
 
             if (!inputArgs) {
-                throw new Error("Procedure Graph Construction is Incorrect");
+                throw new Error("Stored Procedure Graph Construction is Incorrect");
             }
 
             for (const selection of inputArgs) {
                 const selectionFieldNode = selection as FieldNode;
-                const proc: ProcFunctionSchema[] | undefined = fullSchema.filter((s) => {
-                    return s.name === selectionFieldNode.name.value;
+                const proc: StoredProcSchema | undefined = fullSchema.find((s) => {
+                    return s.storedProcName === selectionFieldNode.name.value;
                 });
 
-                if (!proc || proc.length <= 0) {
-                    throw new Error("Procedure Graph Construction is Incorrect");
+                if (!proc) {
+                    throw new Error("Stored Procedure Graph Construction is Incorrect");
                 }
 
                 const procArgs: { name: string; value: any; isString: boolean }[] = [];
@@ -110,8 +105,8 @@ export class ParseProcedure {
                 });
 
                 response.push({
-                    procName: proc[0].name,
-                    results: await AwaitHelper.execute(databaseWorker.executeProcedure(proc, procArgs)),
+                    procName: proc.storedProcName,
+                    results: await AwaitHelper.execute<any[][]>(databaseWorker.executeStoredProcedure(proc, procArgs)),
                 });
             }
         }

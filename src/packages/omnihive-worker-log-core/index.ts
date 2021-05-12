@@ -11,7 +11,6 @@ import dayjs from "dayjs";
 import os from "os";
 import { serializeError } from "serialize-error";
 import { AdminEventResponse } from "@withonevision/omnihive-core/models/AdminEventResponse";
-import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 export default class LogWorkerServerDefault extends HiveWorkerBase implements ILogWorker {
     constructor() {
@@ -31,10 +30,7 @@ export default class LogWorkerServerDefault extends HiveWorkerBase implements IL
         }
 
         try {
-            if (featureWorker) {
-                consoleOnlyLogging =
-                    (await AwaitHelper.execute(featureWorker?.get<boolean>("consoleOnlyLogging"))) ?? true;
-            }
+            (await featureWorker?.get<boolean>("consoleOnlyLogging")) ?? true;
         } catch {
             consoleOnlyLogging = true;
         }
@@ -51,11 +47,9 @@ export default class LogWorkerServerDefault extends HiveWorkerBase implements IL
             requestError: undefined,
         };
 
-        if (global && global.omnihive && global.omnihive.adminServer && global.omnihive.adminServer.clients) {
-            global.omnihive.adminServer.clients.forEach((ws) => {
-                ws.send(JSON.stringify(adminEvent));
-            });
-        }
+        global.omnihive.adminServer.clients.forEach((ws) => {
+            ws.send(JSON.stringify(adminEvent));
+        });
 
         if (consoleOnlyLogging) {
             this.chalkConsole(logLevel, osName, timestamp, logString);
@@ -64,7 +58,7 @@ export default class LogWorkerServerDefault extends HiveWorkerBase implements IL
 
         const logWorkers: RegisteredHiveWorker[] = global.omnihive.registeredWorkers.filter(
             (value: RegisteredHiveWorker) => {
-                return value.enabled === true && value.type === HiveWorkerType.Log && value.name !== "ohBootLogWorker";
+                return value.enabled === true && value.type === HiveWorkerType.Log && value.name !== "ohreqLogWorker";
             }
         );
 

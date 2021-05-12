@@ -10,7 +10,6 @@ import sinon from "sinon";
 import { CrossStorageClient } from "cross-storage";
 
 import EncryptionWorker from "../../omnihive-worker-encryption-nodeforge";
-import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 const testService = new TestService();
 const {
@@ -25,14 +24,14 @@ describe("cross storage worker tests", () => {
     });
     describe("init functions", () => {
         it("test init", async () => {
-            await AwaitHelper.execute(worker.init(config));
+            await worker.init(config);
             assert.isObject(worker.config);
         });
     });
     describe("worker functions", () => {
         it("exists - not initialized", async () => {
             try {
-                await AwaitHelper.execute(uninitializedWorker.exists("ping"));
+                await uninitializedWorker.exists("ping");
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(err.message, "Client store has not been initialized.  Please call initialize first");
@@ -40,7 +39,7 @@ describe("cross storage worker tests", () => {
         });
         it("exists - no encryption worker", async () => {
             try {
-                await AwaitHelper.execute(worker.exists("ping"));
+                await worker.exists("ping");
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(
@@ -52,19 +51,19 @@ describe("cross storage worker tests", () => {
         it("does not exist", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(new EncryptionWorker());
             sinon.stub(CrossStorageClient.prototype, "onConnect").resolves();
-            const result = await AwaitHelper.execute(worker.exists("ping"));
+            const result = await worker.exists("ping");
             assert.equal(result, false);
         });
         it("exists", async () => {
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(new EncryptionWorker());
             sinon.stub(CrossStorageClient.prototype, "onConnect").resolves();
             sinon.stub(CrossStorageClient.prototype, "get").resolves(["pong"]);
-            const result = await AwaitHelper.execute(worker.exists("ping"));
+            const result = await worker.exists("ping");
             assert.equal(result, true);
         });
         it("get - not initialized", async () => {
             try {
-                await AwaitHelper.execute(uninitializedWorker.get("ping"));
+                await uninitializedWorker.get("ping");
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(err.message, "Client store has not been initialized.  Please call initialize first");
@@ -72,7 +71,7 @@ describe("cross storage worker tests", () => {
         });
         it("get - no encryption worker", async () => {
             try {
-                await AwaitHelper.execute(worker.get("ping"));
+                await worker.get("ping");
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(
@@ -83,7 +82,7 @@ describe("cross storage worker tests", () => {
         });
         it("remove - not initialized", async () => {
             try {
-                await AwaitHelper.execute(uninitializedWorker.remove("ping"));
+                await uninitializedWorker.remove("ping");
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(err.message, "Client store has not been initialized.  Please call initialize first");
@@ -91,7 +90,7 @@ describe("cross storage worker tests", () => {
         });
         it("set - not initialized", async () => {
             try {
-                await AwaitHelper.execute(uninitializedWorker.set("ping", "pong"));
+                await uninitializedWorker.set("ping", "pong");
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(err.message, "Client store has not been initialized.  Please call initialize first");
@@ -99,7 +98,7 @@ describe("cross storage worker tests", () => {
         });
         it("set - no encryption worker", async () => {
             try {
-                await AwaitHelper.execute(worker.set("ping", "pong"));
+                await worker.set("ping", "pong");
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(

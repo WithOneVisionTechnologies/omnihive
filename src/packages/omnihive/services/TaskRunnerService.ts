@@ -5,18 +5,17 @@ import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLog
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
 import fse from "fs-extra";
-import readPkgUp, { NormalizedReadResult } from "read-pkg-up";
+import readPkgUp from "read-pkg-up";
 import { serializeError } from "serialize-error";
-import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { AppService } from "./AppService";
 
 export class TaskRunnerService {
     public run = async (worker: string, args: string): Promise<void> => {
         // Run basic app service
-        const pkgJson: NormalizedReadResult | undefined = await AwaitHelper.execute(readPkgUp());
+        const pkgJson: readPkgUp.NormalizedReadResult | undefined = await readPkgUp();
         const appService: AppService = new AppService();
 
-        await AwaitHelper.execute(appService.initOmniHiveApp(pkgJson));
+        await appService.initOmniHiveApp(pkgJson);
 
         // Get TaskWorker
 
@@ -49,9 +48,9 @@ export class TaskRunnerService {
         // Try running the worker
         try {
             if (!(workerArgs === null || workerArgs === undefined)) {
-                await AwaitHelper.execute(taskWorker.instance.execute(workerArgs));
+                await taskWorker.instance.execute(workerArgs);
             } else {
-                await AwaitHelper.execute(taskWorker.instance.execute());
+                await taskWorker.instance.execute();
             }
         } catch (err) {
             this.logError(worker, err);
@@ -63,7 +62,7 @@ export class TaskRunnerService {
     private logError = async (workerName: string, err: Error) => {
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
-            "ohBootLogWorker"
+            "ohreqLogWorker"
         );
 
         logWorker?.write(

@@ -1,4 +1,3 @@
-import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { assert } from "chai";
 import CacheNodeCacheWorker from "..";
 import { TestConfigSettings } from "../../../tests/models/TestConfigSettings";
@@ -18,32 +17,32 @@ const mockTimeout = 5000;
 describe("cache (node) worker tests", () => {
     describe("init functions", () => {
         it("test init", async () => {
-            await AwaitHelper.execute(worker.init(config));
+            await worker.init(config);
             assert.isObject(worker.config);
         });
     });
     describe("worker functions", () => {
         beforeEach(async () => {
-            const exists = await AwaitHelper.execute(worker.exists(mockKey));
-            if (exists) await AwaitHelper.execute(worker.remove(mockKey));
+            const exists = await worker.exists(mockKey);
+            if (exists) await worker.remove(mockKey);
         });
         it("does not exist", async () => {
-            const result = await AwaitHelper.execute(worker.exists(mockKey));
+            const result = await worker.exists(mockKey);
             assert.equal(result, false);
         });
         it("set/get cache", async () => {
-            await AwaitHelper.execute(worker.set(mockKey, mockValue, mockTimeout));
-            const result = await AwaitHelper.execute(worker.get(mockKey));
+            await worker.set(mockKey, mockValue, mockTimeout);
+            const result = await worker.get(mockKey);
             assert.equal(result, mockValue);
         });
         it("get nonexistant cache", async () => {
-            const result = await AwaitHelper.execute(worker.get(mockKey));
+            const result = await worker.get(mockKey);
             assert.equal(result, undefined);
         });
         it("delete cache", async () => {
-            await AwaitHelper.execute(worker.set(mockKey, mockValue, mockTimeout));
-            await AwaitHelper.execute(worker.remove(mockKey));
-            const result = await AwaitHelper.execute(worker.exists(mockKey));
+            await worker.set(mockKey, mockValue, mockTimeout);
+            await worker.remove(mockKey);
+            const result = await worker.exists(mockKey);
             assert.equal(result, false);
         });
     });

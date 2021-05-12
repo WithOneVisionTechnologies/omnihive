@@ -1,4 +1,3 @@
-import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { assert } from "chai";
 import dayjs from "dayjs";
 import DayJsDateWorker from "..";
@@ -17,7 +16,7 @@ const mockDate = dayjs("2020-01-01T00:00:00").toDate();
 describe("date worker tests", () => {
     describe("init functions", () => {
         it("test init", async () => {
-            await AwaitHelper.execute(worker.init(config));
+            await worker.init(config);
             assert.isObject(worker.config);
         });
     });

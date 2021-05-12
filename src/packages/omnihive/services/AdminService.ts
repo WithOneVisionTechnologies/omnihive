@@ -11,10 +11,10 @@ import { AdminEvent } from "@withonevision/omnihive-core/models/AdminEvent";
 import { AdminEventResponse } from "@withonevision/omnihive-core/models/AdminEventResponse";
 import { RegisteredUrl } from "@withonevision/omnihive-core/models/RegisteredUrl";
 import { ServerSettings } from "@withonevision/omnihive-core/models/ServerSettings";
-import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
+import Conf from "conf";
+import fse from "fs-extra";
 import WebSocket from "ws";
 import { ServerService } from "./ServerService";
-import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 interface ExtendedWebSocket extends WebSocket {
     isAlive: boolean;
@@ -24,7 +24,7 @@ export class AdminService {
     public run = async () => {
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
-            "ohBootLogWorker"
+            "ohreqLogWorker"
         );
 
         logWorker?.write(
@@ -61,7 +61,7 @@ export class AdminService {
                 (ws as ExtendedWebSocket).isAlive = true;
             });
 
-            ws.on("message", async (message: string) => {
+            ws.on("message", (message: string) => {
                 if (!this.checkWsMessage("config-request", message)) {
                     return;
                 }
@@ -78,20 +78,19 @@ export class AdminService {
                     return;
                 }
 
+                const config = new Conf({ projectName: "omnihive", configName: "omnihive" });
+                const latestConf: string | undefined = config.get<string>(
+                    `latest-settings-${global.omnihive.instanceName}`
+                ) as string;
                 let serverSettings: ServerSettings = new ServerSettings();
 
-                const configWorker: IConfigWorker | undefined = global.omnihive.getWorker<IConfigWorker>(
-                    HiveWorkerType.Config
-                );
-
-                if (!configWorker) {
+                try {
+                    serverSettings = ObjectHelper.createStrict<ServerSettings>(
+                        ServerSettings,
+                        JSON.parse(fse.readFileSync(latestConf, { encoding: "utf8" }))
+                    );
+                } catch {
                     serverSettings = global.omnihive.serverSettings;
-                } else {
-                    try {
-                        serverSettings = await AwaitHelper.execute(configWorker.get());
-                    } catch {
-                        serverSettings = global.omnihive.serverSettings;
-                    }
                 }
 
                 this.sendToSingleClient<{ config: ServerSettings }>(ws, "config-response", { config: serverSettings });
@@ -140,7 +139,7 @@ export class AdminService {
                 });
             });
 
-            ws.on("message", async (message: string) => {
+            ws.on("message", (message: string) => {
                 if (!this.checkWsMessage("config-save-request", message)) {
                     return;
                 }
@@ -160,17 +159,12 @@ export class AdminService {
 
                 try {
                     const settings: ServerSettings = request.data?.config as ServerSettings;
+                    const config = new Conf({ projectName: "omnihive", configName: "omnihive" });
+                    const latestConf: string | undefined = config.get<string>(
+                        `latest-settings-${global.omnihive.instanceName}`
+                    ) as string;
 
-                    const configWorker: IConfigWorker | undefined = global.omnihive.getWorker<IConfigWorker>(
-                        HiveWorkerType.Config
-                    );
-
-                    if (!configWorker) {
-                        throw new Error("No config worker detected.  OmniHive config cannot be saved");
-                    }
-
-                    await configWorker.set(settings);
-
+                    fse.writeFileSync(latestConf, JSON.stringify(settings, null, `\t`));
                     this.sendToSingleClient<{ verified: boolean }>(ws, "config-save-response", { verified: true });
                 } catch (e) {
                     this.sendErrorToSingleClient(ws, "config-save-response", e);

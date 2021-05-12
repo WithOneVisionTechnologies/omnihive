@@ -18,10 +18,9 @@ describe("default log worker tests", () => {
             adminServer: mockServer,
             adminServerTimer: undefined!,
             appServer: undefined!,
-            bootWorkerNames: undefined!,
-            commandLineArgs: undefined!,
             getWorker: undefined!,
             initWorkers: undefined!,
+            instanceName: undefined!,
             ohDirName: undefined!,
             pushWorker: undefined!,
             registeredSchemas: undefined!,
@@ -31,6 +30,7 @@ describe("default log worker tests", () => {
             serverStatus: undefined!,
             serverSettings: undefined!,
             webServer: undefined!,
+            commandLineArgs: undefined!,
         };
     });
     afterEach(() => {
@@ -43,10 +43,9 @@ describe("default log worker tests", () => {
             adminServer: undefined!,
             adminServerTimer: undefined!,
             appServer: undefined!,
-            bootWorkerNames: undefined!,
-            commandLineArgs: undefined!,
             getWorker: undefined!,
             initWorkers: undefined!,
+            instanceName: undefined!,
             ohDirName: undefined!,
             pushWorker: undefined!,
             registeredSchemas: undefined!,
@@ -56,6 +55,7 @@ describe("default log worker tests", () => {
             serverStatus: undefined!,
             serverSettings: undefined!,
             webServer: undefined!,
+            commandLineArgs: undefined!,
         };
     });
     describe("worker functions", () => {

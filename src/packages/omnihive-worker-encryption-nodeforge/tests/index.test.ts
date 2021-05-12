@@ -32,14 +32,14 @@ describe("encryption worker tests", function () {
 
     describe("Init functions", function () {
         it("test init", async function () {
-            const result = await AwaitHelper.execute(init());
+            const result = await init();
             assert.isUndefined(result);
         });
     });
 
     describe("Worker Functions", function () {
         before(async function () {
-            await AwaitHelper.execute(init());
+            await init();
         });
 
         it("base64 - encrypt", function () {

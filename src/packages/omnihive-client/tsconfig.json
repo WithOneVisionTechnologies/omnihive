@@ -1,3 +1,12 @@
 {
-    "extends": "../../../tsconfig.json"
+    "extends": "../../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "../../../dist/packages/omnihive-client",
+        "rootDir": "."
+    },
+    "paths": {
+        "@withonevision/*": ["../../packages/*"]
+    },
+    "include": ["./**/*.ts"],
+    "exclude": ["./tests/**/*"]
 }
