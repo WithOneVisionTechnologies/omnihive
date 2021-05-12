@@ -11,7 +11,7 @@ import tar from "tar";
 import writePkg from "write-pkg";
 import yargs from "yargs";
 import axios from "axios";
-import { AwaitHelper } from "src/packages/omnihive-core/helpers/AwaitHelper";
+import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 // Elastic version record
 type Version = {
