@@ -93,6 +93,7 @@ export default class SystemAccessTokenWorker extends HiveWorkerBase implements I
 
         const hashedConfigMetadata = objectHash(this.tokenWorker.config.metadata, {
             algorithm: this.tokenWorker.config.metadata.hashAlgorithm,
+            respectType: false,
         });
 
         if (!isEqual(hashedConfigMetadata, body.generator)) {
