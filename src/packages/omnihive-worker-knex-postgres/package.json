@@ -1,0 +1,38 @@
+{
+    "name": "@withonevision/omnihive-worker-knex-postgres",
+    "version": "0.0.1",
+    "description": "OmniHive Knex Postgres Database Worker",
+    "license": "MIT",
+    "author": {
+        "name": "With One Vision Technologies",
+        "url": "https://www.withone.vision",
+        "email": "developers@withone.vision"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/WithOneVisionTechnologies/omnihive.git"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "keywords": [
+        "OmniHive",
+        "With One Vision"
+    ],
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@withonevision/omnihive-core": "workspace:*",
+        "knex": "0.95.4",
+        "lodash.orderby": "4.6.0",
+        "pg": "8.6.0",
+        "serialize-error": "8.1.0"
+    },
+    "devDependencies": {
+        "@types/lodash.orderby": "4.6.6",
+        "@types/pg": "7.14.11",
+        "chai": "4.3.4",
+        "typescript": "4.2.4"
+    }
+}

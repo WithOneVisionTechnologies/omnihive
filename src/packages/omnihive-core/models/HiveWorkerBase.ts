@@ -25,7 +25,7 @@ export abstract class HiveWorkerBase extends WorkerGetterBase implements IHiveWo
         const objectAny: any = objectData as any;
 
         Object.keys(objectData).forEach((key: string) => {
-            if (!objectAny[key]) {
+            if (objectAny[key] === undefined || objectAny[key] === null) {
                 throw new Error(`Object key ${key} is null or undefined on hive worker ${this.config.name}`);
             }
         });

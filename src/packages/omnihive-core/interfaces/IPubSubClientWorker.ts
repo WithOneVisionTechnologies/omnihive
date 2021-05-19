@@ -8,7 +8,7 @@ export interface IPubSubClientWorker extends IHiveWorker {
     removeListener: (channelName: string, eventName: string) => void;
     connect: () => Promise<void>;
     disconnect: () => void;
-    emit: (eventName: string, message: any) => void;
+    emit: (channelName: string, eventName: string, message: any) => void;
     joinChannel: (channelName: string) => void;
     leaveChannel: (channelName: string) => void;
 }

@@ -1,6 +1,6 @@
 {
     "ignore": ["**/*.test.ts", "**/*.spec.ts", "**/*.git"],
     "watch": ["../../**/*.ts"],
-    "exec": "cross-env omnihive_settings=\"../../../settings/omnihive_dev_config.json\" yarn node --inspect=127.0.0.1:9228 -r ts-node/register ./omnihive.ts server",
-    "ext": "ts,json,css,pug,html"
+    "exec": "yarn node --inspect=127.0.0.1:9228 -r ts-node/register ./omnihive.ts server --ef ../../../settings/omnihive.env",
+    "ext": "ts,json,css,html"
 }

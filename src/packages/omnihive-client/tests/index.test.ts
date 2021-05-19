@@ -4,6 +4,7 @@ import packageJson from "../package.json";
 import { OmniHiveClient } from "../index";
 import { assert } from "chai";
 import { ClientSettings } from "@withonevision/omnihive-core/models/ClientSettings";
+import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 let settings: TestConfigSettings;
 const testService: TestService = new TestService();
@@ -31,7 +32,7 @@ describe("client tests", function () {
 
         it("init", async function () {
             const clientSettings: ClientSettings = {
-                rootUrl: testService.serverSettings.config.webRootUrl,
+                rootUrl: "http://localhost:3001",
                 tokenMetadata: {
                     audience: testService.getConstants()["ohTokenAudience"],
                     secret: testService.getConstants()["ohTokenSecret"],
@@ -41,7 +42,9 @@ describe("client tests", function () {
                 },
             };
 
-            assert.doesNotThrow(async () => await OmniHiveClient.getSingleton().init(clientSettings));
+            assert.doesNotThrow(
+                async () => await AwaitHelper.execute(OmniHiveClient.getSingleton().init(clientSettings))
+            );
         });
     });
 

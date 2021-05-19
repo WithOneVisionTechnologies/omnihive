@@ -7,7 +7,6 @@ import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IHiveWorker } from "@withonevision/omnihive-core/interfaces/IHiveWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
-import importFresh from "import-fresh";
 
 export class TestService extends WorkerSetterBase {
     public clearWorkers = (): void => {
@@ -67,9 +66,10 @@ export class TestService extends WorkerSetterBase {
             throw new Error(`Hive worker type ${hiveWorker.type} with name ${hiveWorker.name} has no import path`);
         }
 
-        const newWorker: any = importFresh(hiveWorker.importPath);
+        delete require.cache[require.resolve(hiveWorker.importPath)];
+        const newWorker: any = require(hiveWorker.importPath);
         const newWorkerInstance: any = new newWorker.default();
-        await AwaitHelper.execute<void>((newWorkerInstance as IHiveWorker).init(hiveWorker));
+        await AwaitHelper.execute((newWorkerInstance as IHiveWorker).init(hiveWorker));
 
         const registeredWorker: RegisteredHiveWorker = {
             ...hiveWorker,

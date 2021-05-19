@@ -2,8 +2,6 @@ import { assert } from "chai";
 import { LifecycleWorkerAction } from "../enums/LifecycleWorkerAction";
 import { LifecycleWorkerStage } from "../enums/LifecycleWorkerStage";
 import { RestMethod } from "../enums/RestMethod";
-import { AdminEvent } from "../models/AdminEvent";
-import { AdminEventResponse } from "../models/AdminEventResponse";
 import { AuthUser } from "../models/AuthUser";
 import { ConnectionSchema } from "../models/ConnectionSchema";
 import { ConverterSqlInfo } from "../models/ConverterSqlInfo";
@@ -19,9 +17,8 @@ import { PubSubListener } from "../models/PubSubListener";
 import { RegisteredHiveWorker } from "../models/RegisteredHiveWorker";
 import { RegisteredUrl } from "../models/RegisteredUrl";
 import { RestEndpointExecuteResponse } from "../models/RestEndpointExecuteResponse";
-import { ServerConfigSettings } from "../models/ServerConfigSettings";
 import { ServerSettings } from "../models/ServerSettings";
-import { StoredProcSchema } from "../models/StoredProcSchema";
+import { ProcFunctionSchema } from "../models/ProcFunctionSchema";
 import { TableSchema } from "../models/TableSchema";
 import { WorkerGetterBase } from "../models/WorkerGetterBase";
 import { WorkerSetterBase } from "../models/WorkerSetterBase";
@@ -56,22 +53,6 @@ class TestAbstractSetterBase extends WorkerSetterBase {
 }
 
 describe("model tests", function () {
-    it("AdminEvent", function () {
-        const test = new AdminEvent();
-        assert.isTrue(test.adminPassword === "", "adminPassword not initialized properly");
-        assert.isTrue(test.data === undefined, "data not initialized properly");
-        assert.isTrue(test.event === "", "event not initialized properly");
-    });
-
-    it("AdminEventResponse", function () {
-        const test = new AdminEventResponse();
-
-        assert.isTrue(test.data === undefined, "data not initialized properly");
-        assert.isTrue(test.event === "", "event not initialized properly");
-        assert.isTrue(test.requestComplete, "requestComplete not initialized properly");
-        assert.isTrue(test.requestError === undefined, "requestError not initialized properly");
-    });
-
     it("AuthUser", function () {
         const test = new AuthUser();
 
@@ -90,8 +71,8 @@ describe("model tests", function () {
         assert.isTrue(test.workerName === "", "workerName not initialized properly");
         assert.isTrue(Array.isArray(test.tables), "tables not initialized properly");
         assert.isTrue(test.tables.length === 0, "tables array over populated when initialized");
-        assert.isTrue(Array.isArray(test.storedProcs), "storedProcs not initialized properly");
-        assert.isTrue(test.storedProcs.length === 0, "storedProcs array is over populated when initialized");
+        assert.isTrue(Array.isArray(test.procFunctions), "procs not initialized properly");
+        assert.isTrue(test.procFunctions.length === 0, "procs array is over populated when initialized");
     });
 
     it("ConverterSqlInfo", function () {
@@ -153,7 +134,7 @@ describe("model tests", function () {
         assert.isTrue(test.password === "", "password not initialized properly");
         assert.isTrue(test.rowLimit === 0, "rowLimit not initialized properly");
         assert.isTrue(test.serverAddress === "", "serverAddress not initialized properly");
-        assert.isTrue(test.serverPort === "", "serverPort not initialized properly");
+        assert.isTrue(test.serverPort === 0, "serverPort not initialized properly");
         assert.isTrue(test.urlRoute === "", "urlRoute not initialized properly");
         assert.isTrue(test.userName === "", "userName not initialized properly");
     });
@@ -231,15 +212,6 @@ describe("model tests", function () {
         assert.isTrue(test.status === 200, "status not initialized properly");
     });
 
-    it("ServerConfigSettings", function () {
-        const test = new ServerConfigSettings();
-
-        assert.isTrue(test.adminPassword === "", "adminPassword not initialized properly");
-        assert.isTrue(test.adminPortNumber === 7205, "adminPortNumber not initialized properly");
-        assert.isTrue(test.nodePortNumber === 3001, "nodePortNumber not initialized properly");
-        assert.isTrue(test.webRootUrl === "", "webRootUrl not initialized properly");
-    });
-
     it("ServerSettings", function () {
         const test = new ServerSettings();
 
@@ -247,22 +219,17 @@ describe("model tests", function () {
         assert.isTrue(Object.entries(test.features).length === 0, "features not initialized properly");
         assert.isTrue(Array.isArray(test.workers), "workers not initialized properly");
         assert.isTrue(test.workers.length === 0, "workers array is over populated when initialized");
-        assert.isTrue(test.config.adminPassword === "", "config.adminPassword not initialized properly");
-        assert.isTrue(test.config.adminPortNumber === 7205, "config.adminPortNumber not initialized properly");
-        assert.isTrue(test.config.nodePortNumber === 3001, "config.nodePortNumber not initialized properly");
-        assert.isTrue(test.config.webRootUrl === "", "config.webRootUrl not initialized properly");
     });
 
-    it("StoredProcSchema", function () {
-        const test = new StoredProcSchema();
+    it("ProcFunctionSchema", function () {
+        const test = new ProcFunctionSchema();
 
-        assert.isTrue(test.schema === "", "schema not initialized properly");
-        assert.isTrue(test.storedProcName === "", "storedProcName not initialized properly");
-        assert.isTrue(test.parameterId === 0, "parameterId not initialized properly");
+        assert.isTrue(test.schemaName === "", "schema not initialized properly");
+        assert.isTrue(test.name === "", "name not initialized properly");
+        assert.isTrue(test.parameterOrder === 0, "parameterOrder not initialized properly");
         assert.isTrue(test.parameterName === "", "parameterName not initialized properly");
         assert.isTrue(test.parameterTypeDatabase === "", "parameterTypeDatabase not initialized properly");
         assert.isTrue(test.parameterTypeEntity === "", "parameterTypeEntity not initialized properly");
-        assert.isTrue(test.parameterMaxBytes === 0, "parameterMaxBytes not initialized properly");
     });
 
     it("TableSchema", function () {
@@ -275,6 +242,7 @@ describe("model tests", function () {
         assert.isTrue(test.columnNameEntity === "", "columnNameEntity not initialized properly");
         assert.isTrue(test.columnTypeDatabase === "", "columnTypeDatabase not initialized properly");
         assert.isTrue(test.columnTypeEntity === "", "columnTypeEntity not initialized properly");
+        assert.isTrue(test.columnPosition === 0, "columnPosition not initialized properly");
         assert.isTrue(test.columnIsNullable === true, "columnIsNullable not initialized properly");
         assert.isTrue(test.columnIsIdentity === false, "columnIsIdentity not initialized properly");
         assert.isTrue(test.columnIsPrimaryKey === false, "columnIsPrimaryKey not initialized properly");
@@ -318,22 +286,7 @@ describe("model tests", function () {
             test.serverSettings.workers.length === 0,
             "serverSettings.workers array over populated when initialized"
         );
-        assert.isTrue(
-            test.serverSettings.config.adminPassword === "",
-            "serverSettings.config.adminPassword not initialized properly"
-        );
-        assert.isTrue(
-            test.serverSettings.config.adminPortNumber === 7205,
-            "serverSettings.config.adminPortNumber not initialized properly"
-        );
-        assert.isTrue(
-            test.serverSettings.config.nodePortNumber === 3001,
-            "serverSettings.config.nodePortNumber not initialized properly"
-        );
-        assert.isTrue(
-            test.serverSettings.config.webRootUrl === "",
-            "serverSettings.config.webRootUrl not initialized properly"
-        );
+
         assert.isTrue(typeof test.baseInitWorkers === "function", "initWorkers function not initialized properly");
         assert.isTrue(typeof test.basePushWorker === "function", "pushWorker function not initialized properly");
         assert.isTrue(Array.isArray(test.registeredWorkers), "registeredWorkers not initialized properly");

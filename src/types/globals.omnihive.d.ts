@@ -1,26 +1,26 @@
-import { ServerStatus } from "@withonevision/omnihive-core/enums/ServerStatus";
-import { RegisteredUrl } from "@withonevision/omnihive-core/models/RegisteredUrl";
+import { ServerStatus } from "src/packages/omnihive-core/enums/ServerStatus";
+import { RegisteredUrl } from "src/packages/omnihive-core/models/RegisteredUrl";
 import express from "express";
 import { Server } from "http";
-import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
-import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
-import { ServerSettings } from "@withonevision/omnihive-core/models/ServerSettings";
-import { IHiveWorker } from "@withonevision/omnihive-core/interfaces/IHiveWorker";
-import WebSocket from "ws";
-import { CommandLineArguments } from "src/packages/omnihive/models/CommandLineArguments";
+import { ConnectionSchema } from "src/packages/omnihive-core/models/ConnectionSchema";
+import { RegisteredHiveWorker } from "src/packages/omnihive-core/models/RegisteredHiveWorker";
+import { ServerSettings } from "src/packages/omnihive-core/models/ServerSettings";
+import { IHiveWorker } from "src/packages/omnihive-core/interfaces/IHiveWorker";
+import { CommandLineArgs } from "src/packages/omnihive/models/CommandLineArgs";
+import { BootLoaderSettings } from "src/packages/omnihive/models/BootLoaderSettings";
+import socketio from "socket.io";
 
 declare global {
     declare namespace NodeJS {
         interface Global {
             omnihive: {
-                adminServer: WebSocket.Server;
-                adminServerTimer: NodeJS.Timer;
+                adminServer: socketio.Server | undefined;
                 appServer: express.Express | undefined;
+                bootLoaderSettings: BootLoaderSettings;
                 bootWorkerNames: string[];
-                commandLineArgs: CommandLineArguments;
+                commandLineArgs: CommandLineArgs;
                 getWorker: <T extends IHiveWorker | undefined>(type: string, name?: string) => T | undefined;
                 initWorkers: (configs: HiveWorker[]) => Promise<void>;
-                instanceName: string;
                 ohDirName: string;
                 pushWorker: (hiveWorker: HiveWorker, isBoot: boolean = false, isCore: boolean = false) => Promise<void>;
                 registeredSchemas: ConnectionSchema[];

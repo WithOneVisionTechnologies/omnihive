@@ -24,10 +24,10 @@
     },
     "dependencies": {
         "graphql": "15.5.0",
-        "serialize-error": "8.0.1"
+        "serialize-error": "8.1.0"
     },
     "devDependencies": {
-        "chai": "4.3.3",
-        "typescript": "4.2.3"
+        "chai": "4.3.4",
+        "typescript": "4.2.4"
     }
 }

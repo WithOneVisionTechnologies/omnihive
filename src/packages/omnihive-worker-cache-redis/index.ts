@@ -18,7 +18,7 @@ export default class RedisCacheWorker extends HiveWorkerBase implements ICacheWo
 
     public async init(config: HiveWorker): Promise<void> {
         try {
-            await AwaitHelper.execute<void>(super.init(config));
+            await AwaitHelper.execute(super.init(config));
             const metadata: RedisCacheWorkerMetadata = this.checkObjectStructure<RedisCacheWorkerMetadata>(
                 RedisCacheWorkerMetadata,
                 config.metadata
@@ -30,11 +30,11 @@ export default class RedisCacheWorker extends HiveWorkerBase implements ICacheWo
     }
 
     public exists = async (key: string): Promise<boolean> => {
-        return (await AwaitHelper.execute<number>(this.redis.exists(key))) === 1;
+        return (await AwaitHelper.execute(this.redis.exists(key))) === 1;
     };
 
     public get = async (key: string): Promise<string | undefined> => {
-        const value: string | null = await AwaitHelper.execute<string | null>(this.redis.get(key));
+        const value: string | null = await AwaitHelper.execute(this.redis.get(key));
 
         if (!value) {
             return undefined;

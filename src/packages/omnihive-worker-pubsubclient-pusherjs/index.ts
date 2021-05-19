@@ -24,12 +24,12 @@ export default class PusherJsPubSubClientWorker extends HiveWorkerBase implement
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute<void>(super.init(config));
+        await AwaitHelper.execute(super.init(config));
         this.metadata = this.checkObjectStructure<PusherJsPubSubClientWorkerMetadata>(
             PusherJsPubSubClientWorkerMetadata,
             config.metadata
         );
-        await AwaitHelper.execute<void>(this.connect());
+        await AwaitHelper.execute(this.connect());
     }
 
     public emit = async (eventName: string, message: any): Promise<void> => {

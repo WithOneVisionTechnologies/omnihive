@@ -11,11 +11,13 @@ import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBa
 import { HiveWorkerMetadataGraphBuilder } from "@withonevision/omnihive-core/models/HiveWorkerMetadataGraphBuilder";
 import { HiveWorkerMetadataLifecycleFunction } from "@withonevision/omnihive-core/models/HiveWorkerMetadataLifecycleFunction";
 import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
-import { StoredProcSchema } from "@withonevision/omnihive-core/models/StoredProcSchema";
+import { ProcFunctionSchema } from "@withonevision/omnihive-core/models/ProcFunctionSchema";
 import { TableSchema } from "@withonevision/omnihive-core/models/TableSchema";
 import _ from "lodash";
 import pluralize from "pluralize";
 import { GraphHelper } from "./helpers/GraphHelper";
+import { HiveWorkerMetadataDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataDatabase";
+import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
 
 export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildWorker {
     constructor() {
@@ -23,7 +25,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute<void>(super.init(config));
+        await AwaitHelper.execute(super.init(config));
         this.checkObjectStructure<HiveWorkerMetadataGraphBuilder>(HiveWorkerMetadataGraphBuilder, config.metadata);
     }
 
@@ -39,7 +41,14 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             (rw: RegisteredHiveWorker) => rw.enabled === true
         );
 
-        const tables = _.uniqBy(connectionSchema.tables, "tableName");
+        let tables: TableSchema[];
+
+        if ((databaseWorker.config.metadata as HiveWorkerMetadataDatabase).ignoreSchema) {
+            tables = _.uniqBy(connectionSchema.tables, "tableName");
+        } else {
+            tables = _.uniqBy(connectionSchema.tables, (t) => [t.schemaName, t.tableName].join("."));
+        }
+
         const lifecycleWorkers: RegisteredHiveWorker[] = enabledWorkers.filter(
             (rw: RegisteredHiveWorker) => rw.type === HiveWorkerType.DataLifecycleFunction
         );
@@ -76,18 +85,20 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         tables.forEach((table: TableSchema) => {
             // Get meta things
             const tableSchema: TableSchema[] = connectionSchema.tables.filter((schema: TableSchema) => {
-                return schema.tableName === table.tableName;
+                return schema.tableName === table.tableName && schema.schemaName === table.schemaName;
             });
 
             const fullSchema: TableSchema[] = connectionSchema.tables;
-            const primaryKey: TableSchema = tableSchema.filter((ts: TableSchema) => ts.columnIsPrimaryKey === true)[0];
-            const primarySchema: TableSchema[] = fullSchema.filter((schema: TableSchema) => {
-                return schema.columnForeignKeyTableName === tableSchema[0].tableName;
-            });
+            const primaryKeys: TableSchema[] | undefined = tableSchema.filter(
+                (ts: TableSchema) => ts.columnIsPrimaryKey === true
+            );
 
-            if (!primaryKey) {
-                throw new Error(`Cannot find primary key for ${table.tableName} in ${databaseWorker.config.name}`);
-            }
+            const primarySchema: TableSchema[] = fullSchema.filter((schema: TableSchema) => {
+                return (
+                    schema.columnForeignKeyTableName === tableSchema[0].tableName &&
+                    schema.schemaName === tableSchema[0].schemaName
+                );
+            });
 
             const foreignSchema: TableSchema[] = [];
             tableSchema.forEach((column: TableSchema) => {
@@ -104,7 +115,13 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\textensions: {`);
             builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.config.name}",`);
             builder.appendLine(`\t\tdbTableName: "${tableSchema[0].tableName}",`);
-            builder.appendLine(`\t\tdbPrimaryKey: "${primaryKey.columnNameDatabase}",`);
+            if (primaryKeys.length > 0) {
+                builder.append(`\t\tdbPrimaryKeys: [`);
+                primaryKeys.forEach((key: TableSchema) => {
+                    builder.append(`"${key.columnNameDatabase}",`);
+                });
+                builder.appendLine(`],`);
+            }
             builder.appendLine(`\t},`);
             builder.appendLine(`\tfields: () => ({`);
 
@@ -134,7 +151,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 builder.appendLine(`\t\t\targs: {`);
 
                 const primarySchemaColumns = connectionSchema.tables.filter(
-                    (value: TableSchema) => value.tableName === schema.tableName
+                    (value: TableSchema) =>
+                        value.tableName === schema.tableName && value.schemaName === schema.schemaName
                 );
                 let joinPrimaryKeyColumnName: string = "";
 
@@ -175,7 +193,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 builder.appendLine(`\t\t\targs: {`);
 
                 const foreignSchemaColumns = connectionSchema.tables.filter(
-                    (value: TableSchema) => value.tableName === schema.columnForeignKeyTableName
+                    (value: TableSchema) =>
+                        value.tableName === schema.columnForeignKeyTableName && value.schemaName === schema.schemaName
                 );
                 let joinPrimaryKeyColumnName: string = "";
 
@@ -215,7 +234,13 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\textensions: {`);
             builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.config.name}",`);
             builder.appendLine(`\t\tdbTableName: "${tableSchema[0].tableName}",`);
-            builder.appendLine(`\t\tdbPrimaryKey: "${primaryKey.columnNameDatabase}",`);
+            if (primaryKeys.length > 0) {
+                builder.append(`\t\tdbPrimaryKeys: [`);
+                primaryKeys.forEach((key: TableSchema) => {
+                    builder.append(`"${key.columnNameDatabase}",`);
+                });
+                builder.appendLine(`],`);
+            }
             builder.appendLine(`\t\taggregateType: true,`);
             builder.appendLine(`\t},`);
             builder.appendLine(`\tfields: () => ({`);
@@ -410,7 +435,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 builder.appendLine(`\t\t\targs: {`);
 
                 const primarySchemaColumns = connectionSchema.tables.filter(
-                    (value: TableSchema) => value.tableName === schema.tableName
+                    (value: TableSchema) =>
+                        value.tableName === schema.tableName && value.schemaName === schema.schemaName
                 );
                 let joinPrimaryKeyColumnName: string = "";
 
@@ -450,7 +476,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 builder.appendLine(`\t\t\targs: {`);
 
                 const foreignSchemaColumns = connectionSchema.tables.filter(
-                    (value: TableSchema) => value.tableName === schema.columnForeignKeyTableName
+                    (value: TableSchema) =>
+                        value.tableName === schema.columnForeignKeyTableName && value.schemaName === schema.schemaName
                 );
                 let joinPrimaryKeyColumnName: string = "";
 
@@ -563,7 +590,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         tables.forEach((table: TableSchema) => {
             // Get meta things
             const tableSchema: TableSchema[] = connectionSchema.tables.filter((schema: TableSchema) => {
-                return schema.tableName === table.tableName;
+                return schema.tableName === table.tableName && schema.schemaName === table.schemaName;
             });
 
             // Build base query
@@ -623,7 +650,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         tables.forEach((table: TableSchema) => {
             // Get meta things
             const tableSchema: TableSchema[] = connectionSchema.tables.filter((schema: TableSchema) => {
-                return schema.tableName === table.tableName;
+                return schema.tableName === table.tableName && schema.schemaName === table.schemaName;
             });
 
             // Insert
@@ -664,7 +691,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Insert &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     beforeInsertArray.push({
@@ -702,7 +732,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Insert &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     insteadOfInsertArray.push({
@@ -760,7 +793,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Insert &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     afterInsertArray.push({
@@ -826,7 +862,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Update &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     beforeUpdateArray.push({
@@ -860,7 +899,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Update &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     insteadOfUpdateArray.push({
@@ -904,7 +946,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Update &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     afterUpdateArray.push({
@@ -965,7 +1010,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Delete &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     beforeDeleteArray.push({
@@ -999,7 +1047,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Delete &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     insteadOfDeleteArray.push({
@@ -1043,7 +1094,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     metadata.lifecycleAction == LifecycleWorkerAction.Delete &&
                     metadata.lifecycleWorker === databaseWorker.config.name &&
                     metadata.lifecycleTables.some(
-                        (lifecycleTable) => lifecycleTable === tableSchema[0].tableName || lifecycleTable === "*"
+                        (lifecycleTable) =>
+                            (lifecycleTable === tableSchema[0].tableName &&
+                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                            lifecycleTable === "*"
                     )
                 ) {
                     afterDeleteArray.push({
@@ -1080,26 +1134,42 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         builder.appendLine();
 
         // Build stored proc object if they exist
-        if (connectionSchema.storedProcs.length > 0) {
+        const dbWorkerMeta: HiveWorkerMetadataDatabase = databaseWorker.config.metadata as HiveWorkerMetadataDatabase;
+
+        if (connectionSchema.procFunctions.length > 0) {
             // Stored proc object type
-            builder.appendLine(`var StoredProcObjectType = new GraphQLObjectType({`);
-            builder.appendLine(`\tname: 'storedProcedures',`);
+            builder.appendLine(`var DbProcObjectType = new GraphQLObjectType({`);
+            if (!StringHelper.isNullOrWhiteSpace(dbWorkerMeta.procFunctionGraphSchemaName)) {
+                builder.appendLine(`\tname: '${dbWorkerMeta.procFunctionGraphSchemaName}',`);
+            } else {
+                builder.appendLine(`\tname: 'dbProcedures',`);
+            }
             builder.appendLine(`\tfields: () => ({`);
 
             // Build all stored procedures as graph fields
 
-            const storedProcedures = _.uniqBy(connectionSchema.storedProcs, "storedProcName");
+            let procFunctions: ProcFunctionSchema[];
 
-            storedProcedures.forEach((proc: StoredProcSchema) => {
-                builder.appendLine(`\t\t${proc.storedProcName}: {`);
+            if (dbWorkerMeta.ignoreSchema) {
+                procFunctions = _.uniqBy(connectionSchema.procFunctions, "procName");
+            } else {
+                procFunctions = _.uniqBy(connectionSchema.procFunctions, (p) => [p.schemaName, p.name].join("."));
+            }
+
+            procFunctions.forEach((procFunction: ProcFunctionSchema) => {
+                if (dbWorkerMeta.ignoreSchema) {
+                    builder.appendLine(`\t\t${procFunction.name}: {`);
+                } else {
+                    builder.appendLine(`\t\t${procFunction.schemaName}_${procFunction.name}: {`);
+                }
                 builder.appendLine(`\t\t\ttype: GraphQLJSONObject,`);
                 builder.appendLine(`\t\t\targs: {`);
-                connectionSchema.storedProcs
+                connectionSchema.procFunctions
                     .filter(
-                        (arg: StoredProcSchema) =>
-                            arg.schema === proc.schema && arg.storedProcName === proc.storedProcName
+                        (arg: ProcFunctionSchema) =>
+                            arg.schemaName === procFunction.schemaName && arg.name === procFunction.name
                     )
-                    .forEach((arg: StoredProcSchema) => {
+                    .forEach((arg: ProcFunctionSchema) => {
                         if (arg.parameterName) {
                             builder.append(`\t\t\t\t${arg.parameterName.replace("@", "")}: { type : `);
 
@@ -1134,16 +1204,20 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine();
 
             // Stored proc schema type
-            builder.appendLine(`exports.FederatedGraphStoredProcSchema = new GraphQLSchema({`);
+            builder.appendLine(`exports.FederatedGraphProcSchema = new GraphQLSchema({`);
             builder.appendLine(`\tquery: new GraphQLObjectType({`);
             builder.appendLine(`\t\tname: 'Query',`);
             builder.appendLine(`\t\tfields: () => ({`);
-            builder.appendLine(`\t\t\tstoredProcedures: {`);
-            builder.appendLine(`\t\t\t\ttype: new GraphQLList(StoredProcObjectType),`);
+            if (!StringHelper.isNullOrWhiteSpace(dbWorkerMeta.procFunctionGraphSchemaName)) {
+                builder.appendLine(`\t\t\t${dbWorkerMeta.procFunctionGraphSchemaName}: {`);
+            } else {
+                builder.appendLine(`\t\t\tdbProcedures: {`);
+            }
+            builder.appendLine(`\t\t\t\ttype: new GraphQLList(DbProcObjectType),`);
             builder.appendLine(`\t\t\t\tresolve: async (parent, args, context, resolveInfo) => {`);
             builder.appendLine(`\t\t\t\t\tvar graphParser = new ParseMaster();`);
             builder.appendLine(
-                `\t\t\t\t\tvar dbResponses = await AwaitHelper.execute(graphParser.parseStoredProcedure("${databaseWorker.config.name}", resolveInfo, context.omnihive));`
+                `\t\t\t\t\tvar dbResponses = await AwaitHelper.execute(graphParser.parseProcedure("${databaseWorker.config.name}", resolveInfo, context.omnihive));`
             );
             builder.appendLine(`\t\t\t\t\tfor (const item of dbResponses) {`);
             builder.appendLine(`\t\t\t\t\t\t\tdbResponses[item.procName] = item.results;`);

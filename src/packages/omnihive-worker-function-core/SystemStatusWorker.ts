@@ -130,7 +130,7 @@ export default class SystemStatusWorker extends HiveWorkerBase implements IRestE
             throw new Error(`Request Denied`);
         }
 
-        if (bodyStructured.adminPassword !== this.serverSettings.config.adminPassword) {
+        if (bodyStructured.adminPassword !== global.omnihive.bootLoaderSettings.baseSettings.adminPassword) {
             throw new Error(`Request Denied`);
         }
     };
