@@ -29,12 +29,12 @@ jobs:
                   tar -czvf omnihive.tar.gz ./dist/packages/omnihive
                   gh release create ${{ steps.version.outputs.VERSION }} omnihive.tar.gz
             - name: Log into Docker Hub
-              users: docker/login-action@v1
+              uses: docker/login-action@v1
               with:
                   username: ${{ secrets.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_PASSWORD }}
             - name: Push to Docker Hub
-              users: docker/build-push-action@v2
+              uses: docker/build-push-action@v2
               with:
                   push: true
                   tags: withonevision/omnihive
