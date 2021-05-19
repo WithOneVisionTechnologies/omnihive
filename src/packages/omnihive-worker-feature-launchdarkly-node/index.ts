@@ -42,7 +42,7 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
 
     public async init(config: HiveWorker): Promise<void> {
         try {
-            await AwaitHelper.execute<void>(super.init(config));
+            await AwaitHelper.execute(super.init(config));
             const metadata: LaunchDarklyNodeFeatureWorkerMetadata = this.checkObjectStructure<LaunchDarklyNodeFeatureWorkerMetadata>(
                 LaunchDarklyNodeFeatureWorkerMetadata,
                 config.metadata
@@ -66,7 +66,7 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
                 this.client = featureClient;
             });
 
-            await featureClient.instance.waitForInitialization();
+            await AwaitHelper.execute(featureClient.instance.waitForInitialization());
         } catch (err) {
             throw new Error("Launch Darkly Init Error => " + JSON.stringify(serializeError(err)));
         }
@@ -92,7 +92,7 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
         let value: any;
 
         try {
-            value = await AwaitHelper.execute<any>(this.client.instance.variation(name, this.user, defaultValue));
+            value = await AwaitHelper.execute(this.client.instance.variation(name, this.user, defaultValue));
         } catch (err) {
             throw new Error("Failed to retrieve feature.");
         }
@@ -136,7 +136,7 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
 
     public disconnect = async () => {
         if (this.client) {
-            await this.client.instance.flush();
+            await AwaitHelper.execute(this.client.instance.flush());
             this.client.instance.close();
             this.client.ready = false;
         }

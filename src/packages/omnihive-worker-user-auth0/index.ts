@@ -14,7 +14,6 @@ import {
     ManagementClient,
     PasswordGrantOptions,
     ResetPasswordEmailOptions,
-    TokenResponse,
     UpdateUserData,
     User,
     UserMetadata,
@@ -39,7 +38,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
 
     public async init(config: HiveWorker): Promise<void> {
         try {
-            await AwaitHelper.execute<void>(super.init(config));
+            await AwaitHelper.execute(super.init(config));
 
             this.metadata = this.checkObjectStructure<AuthZeroUserWorkerMetadata>(
                 AuthZeroUserWorkerMetadata,
@@ -74,9 +73,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
             const authUser: AuthUser = new AuthUser();
             const createUserData: CreateUserData = { connection: this.metadata.connection, email, password };
 
-            await AwaitHelper.execute<User<AppMetadata, UserMetadata>>(
-                this.managementClient.createUser(createUserData)
-            );
+            await AwaitHelper.execute(this.managementClient.createUser(createUserData));
             authUser.email = email;
 
             return authUser;
@@ -98,9 +95,9 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
         let user: User | undefined = undefined;
 
         try {
-            const users: User<AppMetadata, UserMetadata>[] = await AwaitHelper.execute<
-                User<AppMetadata, UserMetadata>[]
-            >(this.managementClient.getUsersByEmail(email));
+            const users: User<AppMetadata, UserMetadata>[] = await AwaitHelper.execute(
+                this.managementClient.getUsersByEmail(email)
+            );
 
             if (users.length === 0) {
                 throw new Error("User cannot be found");
@@ -112,9 +109,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
                 throw new Error("User cannot be found");
             }
 
-            fullUser = await AwaitHelper.execute<User<AppMetadata, UserMetadata>>(
-                this.managementClient.getUser({ id: user.user_id })
-            );
+            fullUser = await AwaitHelper.execute(this.managementClient.getUser({ id: user.user_id }));
 
             if (!fullUser) {
                 throw new Error("Full user cannot be found");
@@ -188,7 +183,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
                 username: email,
                 password,
             };
-            await AwaitHelper.execute<TokenResponse>(this.authClient.passwordGrant(databaseLoginData));
+            await AwaitHelper.execute(this.authClient.passwordGrant(databaseLoginData));
         } catch (err) {
             const error = `Login Error => ${JSON.stringify(serializeError(err))}`;
             logWorker?.write(OmniHiveLogLevel.Error, error);
@@ -208,7 +203,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
         const changePasswordData: ResetPasswordEmailOptions = { email, connection: this.metadata.connection };
 
         try {
-            await AwaitHelper.execute<any>(this.authClient.requestChangePasswordEmail(changePasswordData));
+            await AwaitHelper.execute(this.authClient.requestChangePasswordEmail(changePasswordData));
         } catch (err) {
             const error = `Change Password Error => ${JSON.stringify(serializeError(err))}`;
             logWorker?.write(OmniHiveLogLevel.Error, error);
@@ -228,9 +223,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
         let user: User | undefined = undefined;
 
         try {
-            const users = await AwaitHelper.execute<User<AppMetadata, UserMetadata>[]>(
-                this.managementClient.getUsersByEmail(userName)
-            );
+            const users = await AwaitHelper.execute(this.managementClient.getUsersByEmail(userName));
             user = users[0];
 
             if (!user || !user.user_id) {
@@ -283,9 +276,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
                 userData.phone_number = authUser.phoneNumber;
             }
 
-            await AwaitHelper.execute<User<AppMetadata, UserMetadata>>(
-                this.managementClient.updateUser({ id: user.user_id }, userData)
-            );
+            await AwaitHelper.execute(this.managementClient.updateUser({ id: user.user_id }, userData));
 
             const userMetaData: any = {};
 
@@ -293,9 +284,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
                 userMetaData.address = authUser.address;
             }
 
-            await AwaitHelper.execute<User<AppMetadata, UserMetadata>>(
-                this.managementClient.updateUserMetadata({ id: user.user_id }, userMetaData)
-            );
+            await AwaitHelper.execute(this.managementClient.updateUserMetadata({ id: user.user_id }, userMetaData));
         } catch (err) {
             const error = `Update User Error => ${JSON.stringify(serializeError(err))}`;
             logWorker?.write(OmniHiveLogLevel.Error, error);
@@ -315,7 +304,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
         try {
             const deleteUserData: any = { id };
 
-            await AwaitHelper.execute<void>(this.managementClient.deleteUser(deleteUserData));
+            await AwaitHelper.execute(this.managementClient.deleteUser(deleteUserData));
 
             return "User successfully deleted";
         } catch (err) {
@@ -335,9 +324,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
         let user: User | undefined = undefined;
 
         try {
-            const users = await AwaitHelper.execute<User<AppMetadata, UserMetadata>[]>(
-                this.managementClient.getUsersByEmail(email)
-            );
+            const users = await AwaitHelper.execute(this.managementClient.getUsersByEmail(email));
             user = users[0];
 
             if (!user || !user.user_id) {

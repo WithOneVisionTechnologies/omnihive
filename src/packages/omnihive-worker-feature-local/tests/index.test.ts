@@ -1,3 +1,4 @@
+import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { ServerSettings } from "@withonevision/omnihive-core/models/ServerSettings";
 import { assert } from "chai";
 import LocalFeatureWorker from "..";
@@ -20,23 +21,23 @@ worker.serverSettings = mockServerSettings;
 describe("local feature worker tests", () => {
     describe("worker functions", () => {
         it("get", async () => {
-            const result = await worker.get("mockFeature");
+            const result = await AwaitHelper.execute(worker.get("mockFeature"));
             assert.equal(result, "mockFeatureValue");
         });
         it("get - no name", async () => {
             try {
-                await worker.get("");
+                await AwaitHelper.execute(worker.get(""));
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(err.message, "No feature name given.");
             }
         });
         it("get - default value", async () => {
-            const result = await worker.get("nonexistentFeature", "defaultValue");
+            const result = await AwaitHelper.execute(worker.get("nonexistentFeature", "defaultValue"));
             assert.equal(result, "defaultValue");
         });
         it("get - does not exist", async () => {
-            const result = await worker.get("nonexistentFeature");
+            const result = await AwaitHelper.execute(worker.get("nonexistentFeature"));
             assert.equal(result, undefined);
         });
     });

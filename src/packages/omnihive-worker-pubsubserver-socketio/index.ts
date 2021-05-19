@@ -19,7 +19,7 @@ export default class SocketIoPubSubServerWorker extends HiveWorkerBase implement
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute<void>(super.init(config));
+        await AwaitHelper.execute(super.init(config));
         const metadata: SocketIoPubSubServerWorkerMetadata = this.checkObjectStructure<SocketIoPubSubServerWorkerMetadata>(
             SocketIoPubSubServerWorkerMetadata,
             this.config.metadata

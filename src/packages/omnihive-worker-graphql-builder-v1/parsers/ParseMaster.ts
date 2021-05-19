@@ -2,11 +2,12 @@ import { ConnectionSchema } from "@withonevision/omnihive-core/models/Connection
 import { GraphContext } from "@withonevision/omnihive-core/models/GraphContext";
 import { TableSchema } from "@withonevision/omnihive-core/models/TableSchema";
 import { GraphQLResolveInfo } from "graphql";
+import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { ParseAstQuery } from "./ParseAstQuery";
 import { ParseCustomSql } from "./ParseCustomSql";
 import { ParseDelete } from "./ParseDelete";
 import { ParseInsert } from "./ParseInsert";
-import { ParseStoredProcedure } from "./ParseStoredProcedure";
+import { ParseProcedure } from "./ParseProcedure";
 import { ParseUpdate } from "./ParseUpdate";
 
 export class ParseMaster {
@@ -16,7 +17,7 @@ export class ParseMaster {
         omniHiveContext: GraphContext
     ): Promise<any> => {
         const parser: ParseAstQuery = new ParseAstQuery();
-        return await parser.parse(workerName, resolveInfo, omniHiveContext);
+        return await AwaitHelper.execute(parser.parse(workerName, resolveInfo, omniHiveContext));
     };
 
     public parseCustomSql = async (
@@ -25,7 +26,7 @@ export class ParseMaster {
         omniHiveContext: GraphContext
     ): Promise<any[][]> => {
         const parser: ParseCustomSql = new ParseCustomSql();
-        return await parser.parse(workerName, encryptedSql, omniHiveContext);
+        return await AwaitHelper.execute(parser.parse(workerName, encryptedSql, omniHiveContext));
     };
 
     public parseDelete = async (
@@ -36,7 +37,9 @@ export class ParseMaster {
         omniHiveContext: GraphContext
     ): Promise<number> => {
         const parser: ParseDelete = new ParseDelete();
-        return await parser.parse(workerName, tableName, whereObject, customDmlArgs, omniHiveContext);
+        return await AwaitHelper.execute(
+            parser.parse(workerName, tableName, whereObject, customDmlArgs, omniHiveContext)
+        );
     };
 
     public parseInsert = async (
@@ -47,7 +50,9 @@ export class ParseMaster {
         omniHiveContext: GraphContext
     ): Promise<any[]> => {
         const parser: ParseInsert = new ParseInsert();
-        const results = await parser.parse(workerName, tableName, insertObjects, customDmlArgs, omniHiveContext);
+        const results = await AwaitHelper.execute(
+            parser.parse(workerName, tableName, insertObjects, customDmlArgs, omniHiveContext)
+        );
 
         const schema: ConnectionSchema | undefined = global.omnihive.registeredSchemas.find(
             (value: ConnectionSchema) => value.workerName === workerName
@@ -77,13 +82,13 @@ export class ParseMaster {
         return results;
     };
 
-    public parseStoredProcedure = async (
+    public parseProcedure = async (
         workerName: string,
         resolveInfo: GraphQLResolveInfo,
         omniHiveContext: GraphContext
     ): Promise<{ procName: string; results: any[][] }[]> => {
-        const parser: ParseStoredProcedure = new ParseStoredProcedure();
-        return await parser.parse(workerName, resolveInfo, omniHiveContext);
+        const parser: ParseProcedure = new ParseProcedure();
+        return await AwaitHelper.execute(parser.parse(workerName, resolveInfo, omniHiveContext));
     };
 
     public parseUpdate = async (
@@ -95,6 +100,8 @@ export class ParseMaster {
         omniHiveContext: GraphContext
     ): Promise<number> => {
         const parser: ParseUpdate = new ParseUpdate();
-        return await parser.parse(workerName, tableName, updateObject, whereObject, customDmlArgs, omniHiveContext);
+        return await AwaitHelper.execute(
+            parser.parse(workerName, tableName, updateObject, whereObject, customDmlArgs, omniHiveContext)
+        );
     };
 }

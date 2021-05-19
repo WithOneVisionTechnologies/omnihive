@@ -69,7 +69,7 @@ export class TestService extends WorkerSetterBase {
 
         const newWorker: any = importFresh(hiveWorker.importPath);
         const newWorkerInstance: any = new newWorker.default();
-        await AwaitHelper.execute<void>((newWorkerInstance as IHiveWorker).init(hiveWorker));
+        await AwaitHelper.execute((newWorkerInstance as IHiveWorker).init(hiveWorker));
 
         const registeredWorker: RegisteredHiveWorker = {
             ...hiveWorker,

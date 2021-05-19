@@ -34,24 +34,26 @@ describe("user worker tests", function () {
 
     describe("Init functions", function () {
         it("test init", async function () {
-            const result = await init();
+            const result = await AwaitHelper.execute(init());
             assert.isUndefined(result);
         });
     });
 
     describe("Worker Functions", function () {
         before(async function () {
-            await init();
+            await AwaitHelper.execute(init());
         });
 
         const validateStartCondition = async function (createTest: boolean = false): Promise<void> {
-            const userId: string | undefined = await worker.getUserIdByEmail("test1@withone.vision");
+            const userId: string | undefined = await AwaitHelper.execute(
+                worker.getUserIdByEmail("test1@withone.vision")
+            );
 
             if (createTest && userId) {
-                await worker.delete(userId);
+                await AwaitHelper.execute(worker.delete(userId));
             } else if (!createTest && !userId) {
                 try {
-                    await AwaitHelper.execute<AuthUser>(worker.create("test1@withone.vision", "$r0ngPa$$w0rd"));
+                    await AwaitHelper.execute(worker.create("test1@withone.vision", "$r0ngPa$$w0rd"));
                 } catch (err) {
                     throw new Error("create failure: " + serializeError(JSON.stringify(err)));
                 }
@@ -71,12 +73,12 @@ describe("user worker tests", function () {
         };
 
         it("Create User", async function () {
-            await validateStartCondition(true);
+            await AwaitHelper.execute(validateStartCondition(true));
 
             let account: AuthUser;
 
             try {
-                account = await AwaitHelper.execute<AuthUser>(worker.create("test1@withone.vision", "$r0ngPa$$w0rd"));
+                account = await AwaitHelper.execute(worker.create("test1@withone.vision", "$r0ngPa$$w0rd"));
             } catch (err) {
                 throw new Error("create failure: " + serializeError(JSON.stringify(err)));
             }
@@ -85,12 +87,12 @@ describe("user worker tests", function () {
         });
 
         it("Get User", async function () {
-            await validateStartCondition();
+            await AwaitHelper.execute(validateStartCondition());
 
             let account: AuthUser;
 
             try {
-                account = await AwaitHelper.execute<AuthUser>(worker.get("test1@withone.vision"));
+                account = await AwaitHelper.execute(worker.get("test1@withone.vision"));
             } catch (err) {
                 throw new Error("get failure: " + serializeError(JSON.stringify(err)));
             }
@@ -99,12 +101,12 @@ describe("user worker tests", function () {
         });
 
         it("Login User", async function () {
-            await validateStartCondition();
+            await AwaitHelper.execute(validateStartCondition());
 
             let account: AuthUser;
 
             try {
-                account = await AwaitHelper.execute<AuthUser>(worker.login("test1@withone.vision", "$r0ngPa$$w0rd"));
+                account = await AwaitHelper.execute(worker.login("test1@withone.vision", "$r0ngPa$$w0rd"));
             } catch (err) {
                 throw new Error("login failure: " + serializeError(JSON.stringify(err)));
             }
@@ -113,12 +115,12 @@ describe("user worker tests", function () {
         });
 
         it("Password Change Request", async function () {
-            await validateStartCondition();
+            await AwaitHelper.execute(validateStartCondition());
 
             let results: boolean = false;
 
             try {
-                results = await AwaitHelper.execute<boolean>(worker.passwordChangeRequest("test1@withone.vision"));
+                results = await AwaitHelper.execute(worker.passwordChangeRequest("test1@withone.vision"));
             } catch (err) {
                 throw new Error("password change request failure: " + serializeError(JSON.stringify(err)));
             }
@@ -127,7 +129,7 @@ describe("user worker tests", function () {
         });
 
         it("Update User", async function () {
-            await validateStartCondition();
+            await AwaitHelper.execute(validateStartCondition());
 
             let account: AuthUser;
             const updateUser: AuthUser = new AuthUser();
@@ -137,7 +139,7 @@ describe("user worker tests", function () {
             updateUser.fullName = "Unstoppable Tester";
 
             try {
-                account = await AwaitHelper.execute<AuthUser>(worker.update("test1@withone.vision", updateUser));
+                account = await AwaitHelper.execute(worker.update("test1@withone.vision", updateUser));
             } catch (err) {
                 throw new Error("update failure: " + serializeError(JSON.stringify(err)));
             }
@@ -146,14 +148,12 @@ describe("user worker tests", function () {
         });
 
         it("Get UserId By Email", async function () {
-            await validateStartCondition();
+            await AwaitHelper.execute(validateStartCondition());
 
             let results: string | undefined;
 
             try {
-                results = await AwaitHelper.execute<string | undefined>(
-                    worker.getUserIdByEmail("test1@withone.vision")
-                );
+                results = await AwaitHelper.execute(worker.getUserIdByEmail("test1@withone.vision"));
             } catch (err) {
                 throw new Error("get userId by email failure: " + serializeError(JSON.stringify(err)));
             }
@@ -162,17 +162,17 @@ describe("user worker tests", function () {
         });
 
         it("Delete User", async function () {
-            await validateStartCondition();
+            await AwaitHelper.execute(validateStartCondition());
 
             let results: string = "";
 
             try {
-                const id: string | undefined = await AwaitHelper.execute<string | undefined>(
+                const id: string | undefined = await AwaitHelper.execute(
                     worker.getUserIdByEmail("test1@withone.vision")
                 );
 
                 if (id) {
-                    results = await AwaitHelper.execute<string>(worker.delete(id));
+                    results = await AwaitHelper.execute(worker.delete(id));
                 }
             } catch (err) {
                 throw new Error("update failure: " + serializeError(JSON.stringify(err)));

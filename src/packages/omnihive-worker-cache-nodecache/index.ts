@@ -12,7 +12,7 @@ export default class NodeCacheWorker extends HiveWorkerBase implements ICacheWor
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute<void>(super.init(config));
+        await AwaitHelper.execute(super.init(config));
         this.nodeCache = new NodeCache();
     }
 

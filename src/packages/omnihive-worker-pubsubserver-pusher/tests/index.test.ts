@@ -33,19 +33,19 @@ describe("pubsub server worker tests", function () {
 
     describe("Init functions", function () {
         it("test init", async function () {
-            const result = await init();
+            const result = await AwaitHelper.execute(init());
             assert.isUndefined(result);
         });
     });
 
     describe("Worker Functions", function () {
         before(async function () {
-            await init();
+            await AwaitHelper.execute(init());
         });
 
         it("emit", async function () {
             try {
-                const result = await worker.emit("jest-test-channel", "successful test", {});
+                const result = await AwaitHelper.execute(worker.emit("jest-test-channel", "successful test", {}));
                 assert.isUndefined(result);
             } catch (err) {
                 throw new Error("emit error: " + JSON.stringify(serializeError(err)));

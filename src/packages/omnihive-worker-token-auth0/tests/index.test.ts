@@ -34,41 +34,41 @@ describe("token worker tests", function () {
 
     describe("Init functions", function () {
         it("test init", async function () {
-            const result = await init();
+            const result = await AwaitHelper.execute(init());
             assert.isUndefined(result);
         });
     });
 
     describe("Worker Functions", function () {
         before(async function () {
-            await init();
+            await AwaitHelper.execute(init());
         });
 
         const verifyStartState = async function (): Promise<void> {
             if (token && token.length > 0) {
                 try {
-                    const check = await worker.expired(token);
+                    const check = await AwaitHelper.execute(worker.expired(token));
 
                     if (!check) {
-                        token = await AwaitHelper.execute<string>(worker.get());
+                        token = await AwaitHelper.execute(worker.get());
                     } else {
-                        const verified = await AwaitHelper.execute<boolean>(worker.verify(token));
+                        const verified = await AwaitHelper.execute(worker.verify(token));
 
                         if (!verified) {
-                            token = await AwaitHelper.execute<string>(worker.get());
+                            token = await AwaitHelper.execute(worker.get());
                         }
                     }
                 } catch (_err) {
-                    token = await AwaitHelper.execute<string>(worker.get());
+                    token = await AwaitHelper.execute(worker.get());
                 }
             } else {
-                token = await AwaitHelper.execute<string>(worker.get());
+                token = await AwaitHelper.execute(worker.get());
             }
         };
 
         it("Get Token", async function () {
             try {
-                token = await AwaitHelper.execute<string>(worker.get());
+                token = await AwaitHelper.execute(worker.get());
 
                 assert.isTrue(token && token.length > 0);
             } catch (err) {
@@ -78,8 +78,8 @@ describe("token worker tests", function () {
 
         it("Get Token - after token is retrieved", async function () {
             try {
-                await AwaitHelper.execute<string>(worker.get());
-                token = await AwaitHelper.execute<string>(worker.get());
+                await AwaitHelper.execute(worker.get());
+                token = await AwaitHelper.execute(worker.get());
 
                 assert.isTrue(token && token.length > 0);
             } catch (err) {
@@ -89,8 +89,8 @@ describe("token worker tests", function () {
 
         it("Check Expired Token - Valid Token", async function () {
             try {
-                await verifyStartState();
-                const expired = await worker.expired(token);
+                await AwaitHelper.execute(verifyStartState());
+                const expired = await AwaitHelper.execute(worker.expired(token));
 
                 assert.isTrue(expired);
             } catch (err) {
@@ -100,10 +100,10 @@ describe("token worker tests", function () {
 
         it("Check Expired Token - Expired Token", async function () {
             try {
-                await verifyStartState();
+                await AwaitHelper.execute(verifyStartState());
                 const tempToken = "blah";
 
-                const expired = await worker.expired(tempToken);
+                const expired = await AwaitHelper.execute(worker.expired(tempToken));
 
                 assert.isFalse(expired);
             } catch (err) {
@@ -113,10 +113,10 @@ describe("token worker tests", function () {
 
         it("Check Expired Token - Invalid Token", async function () {
             try {
-                await verifyStartState();
+                await AwaitHelper.execute(verifyStartState());
                 const tempToken = "";
 
-                const expired = await worker.expired(tempToken);
+                const expired = await AwaitHelper.execute(worker.expired(tempToken));
 
                 assert.isFalse(expired);
             } catch (err) {
@@ -126,7 +126,7 @@ describe("token worker tests", function () {
 
         it("Verify Token", async function () {
             try {
-                const results = await AwaitHelper.execute<boolean>(worker.verify(token));
+                const results = await AwaitHelper.execute(worker.verify(token));
 
                 assert.isTrue(results);
             } catch (err) {
@@ -136,7 +136,7 @@ describe("token worker tests", function () {
 
         it("Verify Token - null token", async function () {
             try {
-                await AwaitHelper.execute<boolean>(worker.verify(""));
+                await AwaitHelper.execute(worker.verify(""));
 
                 assert.fail("Expected an error");
             } catch (err) {
@@ -146,7 +146,7 @@ describe("token worker tests", function () {
 
         it("Verify Token - null token", async function () {
             try {
-                await AwaitHelper.execute<boolean>(worker.verify(" "));
+                await AwaitHelper.execute(worker.verify(" "));
 
                 assert.fail("Expected an error");
             } catch (err) {
@@ -156,7 +156,7 @@ describe("token worker tests", function () {
 
         it("Verify Token - expired token", async function () {
             try {
-                await AwaitHelper.execute<boolean>(worker.verify("blah"));
+                await AwaitHelper.execute(worker.verify("blah"));
 
                 assert.fail("Expected an error");
             } catch (err) {
@@ -166,7 +166,7 @@ describe("token worker tests", function () {
 
         it("Verify Token - mismatching client", async function () {
             try {
-                await AwaitHelper.execute<boolean>(worker.verify(""));
+                await AwaitHelper.execute(worker.verify(""));
 
                 assert.fail("Expected an error");
             } catch (err) {
@@ -179,7 +179,7 @@ describe("token worker tests", function () {
             try {
                 worker.config.metadata.verifyOn = "false";
                 await AwaitHelper.execute(worker.init(worker.config));
-                const results = await AwaitHelper.execute<boolean>(worker.verify(""));
+                const results = await AwaitHelper.execute(worker.verify(""));
 
                 assert.isTrue(results);
             } catch (err) {

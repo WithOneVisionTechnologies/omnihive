@@ -4,16 +4,17 @@ import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLog
 import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import childProcess from "child_process";
-import readPkgUp from "read-pkg-up";
+import { NormalizedReadResult } from "read-pkg-up";
 import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
+import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 export class AppService {
-    public initOmniHiveApp = async (packageJson: readPkgUp.NormalizedReadResult | undefined) => {
+    public initOmniHiveApp = async (packageJson: NormalizedReadResult | undefined) => {
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
-            "ohreqLogWorker"
+            "ohBootLogWorker"
         );
 
         // Cleanup Reset
@@ -43,7 +44,7 @@ export class AppService {
                 if (
                     !global.omnihive.registeredWorkers.some((rw: RegisteredHiveWorker) => rw.name === coreWorker.name)
                 ) {
-                    await global.omnihive.pushWorker(coreWorker, false, true);
+                    await AwaitHelper.execute(global.omnihive.pushWorker(coreWorker, false, true));
                     global.omnihive.serverSettings.workers.push(coreWorker);
                 }
             }
@@ -205,7 +206,7 @@ export class AppService {
 
         // Register hive workers
         logWorker?.write(OmniHiveLogLevel.Info, "Working on hive workers...");
-        await global.omnihive.initWorkers(global.omnihive.serverSettings.workers);
+        await AwaitHelper.execute(global.omnihive.initWorkers(global.omnihive.serverSettings.workers));
         logWorker?.write(OmniHiveLogLevel.Info, "Hive Workers Initiated...");
     };
 }

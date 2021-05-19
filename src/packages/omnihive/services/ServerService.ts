@@ -12,52 +12,50 @@ import { IServerWorker } from "@withonevision/omnihive-core/interfaces/IServerWo
 import { HiveWorkerMetadataRestFunction } from "@withonevision/omnihive-core/models/HiveWorkerMetadataRestFunction";
 import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
 import { RestEndpointExecuteResponse } from "@withonevision/omnihive-core/models/RestEndpointExecuteResponse";
-import { ServerSettings } from "@withonevision/omnihive-core/models/ServerSettings";
 import bodyParser from "body-parser";
-import Conf from "conf";
 import cors from "cors";
 import express from "express";
-import fse from "fs-extra";
 import helmet from "helmet";
 import http, { Server } from "http";
 import path from "path";
-import readPkgUp from "read-pkg-up";
+import readPkgUp, { NormalizedReadResult } from "read-pkg-up";
 import { serializeError } from "serialize-error";
+import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
 import swaggerUi from "swagger-ui-express";
 import { AdminService } from "./AdminService";
 import { AppService } from "./AppService";
 
 export class ServerService {
     public run = async (serverReset: boolean = false): Promise<void> => {
-        const config = new Conf({ projectName: "omnihive", configName: "omnihive" });
         const appService: AppService = new AppService();
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
-            "ohreqLogWorker"
+            "ohBootLogWorker"
         );
 
         try {
             // Set server to rebuilding first
-            await AwaitHelper.execute<void>(this.changeServerStatus(ServerStatus.Rebuilding));
+            await AwaitHelper.execute(this.changeServerStatus(ServerStatus.Rebuilding));
 
             // Check for server reset and re-poll settings in case they have changed
             if (serverReset === true) {
-                const latestConf: string | undefined = config.get<string>(
-                    `latest-settings-${global.omnihive.instanceName}`
-                ) as string;
-
-                global.omnihive.serverSettings = ObjectHelper.createStrict<ServerSettings>(
-                    ServerSettings,
-                    JSON.parse(fse.readFileSync(latestConf as string, { encoding: "utf8" }))
+                const configWorker: IConfigWorker | undefined = global.omnihive.getWorker<IConfigWorker>(
+                    HiveWorkerType.Config
                 );
+
+                if (!configWorker) {
+                    throw new Error("No config worker can be found.  OmniHive cannot load.");
+                }
+
+                global.omnihive.serverSettings = await AwaitHelper.execute(configWorker.get());
             }
 
-            const pkgJson: readPkgUp.NormalizedReadResult | undefined = await readPkgUp();
+            const pkgJson: NormalizedReadResult | undefined = await AwaitHelper.execute(readPkgUp());
 
-            await appService.initOmniHiveApp(pkgJson);
+            await AwaitHelper.execute(appService.initOmniHiveApp(pkgJson));
 
             // Try to spin up full server
-            let app: express.Express = await AwaitHelper.execute<express.Express>(this.getCleanAppServer());
+            let app: express.Express = await AwaitHelper.execute(this.getCleanAppServer());
 
             const servers: RegisteredHiveWorker[] = global.omnihive.registeredWorkers.filter(
                 (rw: RegisteredHiveWorker) => rw.type === HiveWorkerType.Server && rw.enabled === true
@@ -65,9 +63,7 @@ export class ServerService {
 
             for (const server of servers) {
                 try {
-                    app = await AwaitHelper.execute<express.Express>(
-                        (server.instance as IServerWorker).buildServer(app)
-                    );
+                    app = await AwaitHelper.execute((server.instance as IServerWorker).buildServer(app));
                 } catch (e) {
                     logWorker?.write(
                         OmniHiveLogLevel.Error,
@@ -99,10 +95,10 @@ export class ServerService {
             });
 
             global.omnihive.appServer = app;
-            await this.changeServerStatus(ServerStatus.Online);
+            await AwaitHelper.execute(this.changeServerStatus(ServerStatus.Online));
         } catch (err) {
             // Problem...spin up admin server
-            await this.changeServerStatus(ServerStatus.Admin, err);
+            await AwaitHelper.execute(this.changeServerStatus(ServerStatus.Admin, err));
             logWorker?.write(OmniHiveLogLevel.Error, `Server Spin-Up Error => ${JSON.stringify(serializeError(err))}`);
         }
     };
@@ -112,7 +108,7 @@ export class ServerService {
 
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
-            "ohreqLogWorker"
+            "ohBootLogWorker"
         );
 
         logWorker?.write(OmniHiveLogLevel.Info, `Server Change Handler Started`);
@@ -126,7 +122,7 @@ export class ServerService {
         }
 
         if (serverStatus === ServerStatus.Admin || serverStatus === ServerStatus.Rebuilding) {
-            const app: express.Express = await this.getCleanAppServer();
+            const app: express.Express = await AwaitHelper.execute(this.getCleanAppServer());
 
             app.get("/", (_req, res) => {
                 return res.status(200).render("index", {
@@ -175,7 +171,7 @@ export class ServerService {
     public getCleanAppServer = async (): Promise<express.Express> => {
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
-            "ohreqLogWorker"
+            "ohBootLogWorker"
         );
 
         const adminRoot: string = `/ohAdmin`;
@@ -254,10 +250,12 @@ export class ServerService {
                         res.setHeader("Content-Type", "application/json");
 
                         try {
-                            const workerResponse: RestEndpointExecuteResponse = await workerInstance.execute(
-                                req.headers,
-                                `${req.protocol}://${req.get("host")}${req.originalUrl}`,
-                                req.body
+                            const workerResponse: RestEndpointExecuteResponse = await AwaitHelper.execute(
+                                workerInstance.execute(
+                                    req.headers,
+                                    `${req.protocol}://${req.get("host")}${req.originalUrl}`,
+                                    req.body
+                                )
                             );
 
                             if (workerResponse.response) {

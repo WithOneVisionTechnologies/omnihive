@@ -1,12 +1,3 @@
 {
-    "extends": "../../../tsconfig.json",
-    "compilerOptions": {
-        "outDir": "../../../dist/packages/omnihive-worker-token-jsonwebtoken",
-        "rootDir": "."
-    },
-    "paths": {
-        "@withonevision/*": ["../../packages/*"]
-    },
-    "include": ["./**/*.ts"],
-    "exclude": ["./tests/**/*"]
+    "extends": "../../../tsconfig.json"
 }
