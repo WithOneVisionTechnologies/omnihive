@@ -29,7 +29,7 @@ describe("feature worker tests", function () {
 
     beforeEach(async function () {
         if (!worker.isConnected()) {
-            await AwaitHelper.execute(init());
+            await init();
         }
     });
 
@@ -44,19 +44,19 @@ describe("feature worker tests", function () {
 
     describe("Init functions", function () {
         it("test init", async function () {
-            const result = await AwaitHelper.execute(init());
+            const result = await AwaitHelper.execute<void>(init());
             assert.isUndefined(result);
         });
     });
 
     describe("Worker Functions", function () {
         before(async function () {
-            await AwaitHelper.execute(init());
+            await init();
         });
 
         it("get feature - blank - with default", async function () {
             try {
-                await AwaitHelper.execute(worker.get("", false));
+                await AwaitHelper.execute<unknown>(worker.get("", false));
 
                 assert.fail("Expected to fail");
             } catch (err) {
@@ -69,7 +69,7 @@ describe("feature worker tests", function () {
         });
 
         it("Disconnect", async function () {
-            await AwaitHelper.execute(worker.disconnect());
+            await worker.disconnect();
             assert.isFalse(worker.isConnected());
         });
     });

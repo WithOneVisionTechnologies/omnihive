@@ -34,20 +34,21 @@ describe("log worker tests", function () {
 
     describe("Init functions", function () {
         it("test init", async function () {
-            const result = await AwaitHelper.execute(init());
+            const result = await init();
             assert.isUndefined(result);
         });
     });
 
     describe("Worker Functions", function () {
         before(async function () {
-            await AwaitHelper.execute(init());
+            await init();
         });
 
         it("write to log", async function () {
             try {
-                const result = await AwaitHelper.execute(
-                    worker.write(OmniHiveLogLevel.Info, "OmniHive Test Case => Valid test log message.")
+                const result = await worker.write(
+                    OmniHiveLogLevel.Info,
+                    "OmniHive Test Case => Valid test log message."
                 );
                 assert.isUndefined(result);
             } catch (err) {

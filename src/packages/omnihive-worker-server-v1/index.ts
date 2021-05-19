@@ -44,7 +44,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
     }
 
     public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
+        await AwaitHelper.execute<void>(super.init(config));
 
         try {
             this.metadata = this.checkObjectStructure<HiveWorkerMetadataServer>(
@@ -111,38 +111,19 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
             for (const worker of dbWorkers) {
                 logWorker?.write(OmniHiveLogLevel.Info, `Retrieving ${worker.registeredWorker.name} Schema`);
 
-                const dbWorkerMeta = worker.registeredWorker.metadata as HiveWorkerMetadataDatabase;
-                const result: ConnectionSchema = await AwaitHelper.execute(
+                const result: ConnectionSchema = await AwaitHelper.execute<ConnectionSchema>(
                     (worker.registeredWorker.instance as IDatabaseWorker).getSchema()
                 );
 
                 result.tables.forEach((schema: TableSchema) => {
-                    if (dbWorkerMeta.ignoreSchema) {
-                        schema.tableNameCamelCase = camelCase(schema.tableName);
-                        schema.tableNamePascalCase = StringHelper.capitalizeFirstLetter(camelCase(schema.tableName));
-                    } else {
-                        schema.tableNameCamelCase = `${schema.schemaName.toLowerCase()}${StringHelper.capitalizeFirstLetter(
-                            camelCase(schema.tableName)
-                        )}`;
-                        schema.tableNamePascalCase = `${StringHelper.capitalizeFirstLetter(
-                            schema.schemaName.toLowerCase()
-                        )}${StringHelper.capitalizeFirstLetter(camelCase(schema.tableName))}`;
-                    }
+                    schema.tableNameCamelCase = camelCase(schema.tableName);
+                    schema.tableNamePascalCase = StringHelper.capitalizeFirstLetter(camelCase(schema.tableName));
 
                     if (schema.columnIsForeignKey) {
-                        if (dbWorkerMeta.ignoreSchema) {
-                            schema.columnForeignKeyTableNameCamelCase = camelCase(schema.columnForeignKeyTableName);
-                            schema.columnForeignKeyTableNamePascalCase = StringHelper.capitalizeFirstLetter(
-                                camelCase(schema.columnForeignKeyTableName)
-                            );
-                        } else {
-                            schema.columnForeignKeyTableNameCamelCase = `${schema.schemaName.toLowerCase()}${StringHelper.capitalizeFirstLetter(
-                                camelCase(schema.columnForeignKeyTableName)
-                            )}`;
-                            schema.columnForeignKeyTableNamePascalCase = `${StringHelper.capitalizeFirstLetter(
-                                camelCase(schema.schemaName)
-                            )}${StringHelper.capitalizeFirstLetter(camelCase(schema.columnForeignKeyTableName))}`;
-                        }
+                        schema.columnForeignKeyTableNameCamelCase = camelCase(schema.columnForeignKeyTableName);
+                        schema.columnForeignKeyTableNamePascalCase = StringHelper.capitalizeFirstLetter(
+                            camelCase(schema.columnForeignKeyTableName)
+                        );
                     }
 
                     let columnWorkingName = camelCase(schema.columnNameDatabase);
@@ -169,7 +150,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                 global.omnihive.registeredSchemas.push({
                     workerName: worker.registeredWorker.name,
                     tables: result.tables,
-                    procFunctions: result.procFunctions,
+                    storedProcs: result.storedProcs,
                 });
             }
 
@@ -292,7 +273,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                             `Graph Progress => ${builder.name} => ${databaseWorker.registeredWorker.name} Query Schema Merged`
                         );
 
-                        const procSchema: any = databaseDynamicModule.FederatedGraphProcSchema;
+                        const procSchema: any = databaseDynamicModule.FederatedGraphStoredProcSchema;
 
                         if (procSchema) {
                             graphDatabaseSchema = mergeSchemas({ schemas: [graphDatabaseSchema, procSchema] });
@@ -300,7 +281,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
 
                         logWorker?.write(
                             OmniHiveLogLevel.Info,
-                            `Graph Progress => ${builder.name} => ${databaseWorker.registeredWorker.name} Proc Schema Merged`
+                            `Graph Progress => ${builder.name} => ${databaseWorker.registeredWorker.name} Stored Proc Schema Merged`
                         );
 
                         const graphDatabaseConfig: ApolloServerExpressConfig = {
@@ -326,7 +307,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
 
                         if ((await featureWorker?.get<boolean>("graphPlayground")) ?? true) {
                             graphDatabaseConfig.playground = {
-                                endpoint: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
+                                endpoint: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
                             };
                         } else {
                             graphDatabaseConfig.playground = false;
@@ -339,7 +320,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                         });
 
                         global.omnihive.registeredUrls.push({
-                            path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
+                            path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
                             type: RegisteredUrlType.GraphDatabase,
                             metadata: {},
                         });
@@ -385,7 +366,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
 
                 if ((await featureWorker?.get<boolean>("graphPlayground")) ?? true) {
                     graphFunctionConfig.playground = {
-                        endpoint: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
+                        endpoint: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
                     };
                 } else {
                     graphFunctionConfig.playground = false;
@@ -398,7 +379,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                 });
 
                 global.omnihive.registeredUrls.push({
-                    path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
+                    path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
                     type: RegisteredUrlType.GraphFunction,
                     metadata: {},
                 });
@@ -425,7 +406,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     openapi: "3.0.0",
                     servers: [
                         {
-                            url: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest`,
+                            url: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest`,
                         },
                     ],
                 };
@@ -460,12 +441,10 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                             res.setHeader("Content-Type", "application/json");
 
                             try {
-                                const workerResponse: RestEndpointExecuteResponse = await AwaitHelper.execute(
-                                    workerInstance.execute(
-                                        req.headers,
-                                        `${req.protocol}://${req.get("host")}${req.originalUrl}`,
-                                        req.body
-                                    )
+                                const workerResponse: RestEndpointExecuteResponse = await workerInstance.execute(
+                                    req.headers,
+                                    `${req.protocol}://${req.get("host")}${req.originalUrl}`,
+                                    req.body
                                 );
 
                                 if (workerResponse.response) {
@@ -474,8 +453,8 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                                     res.status(workerResponse.status).send(true);
                                 }
                             } catch (e) {
-                                return res.status(500).render("pages/500", {
-                                    rootUrl: global.omnihive.bootLoaderSettings.baseSettings.webRootUrl,
+                                return res.status(500).render("500", {
+                                    rootUrl: global.omnihive.serverSettings.config.webRootUrl,
                                     error: serializeError(e),
                                 });
                             }
@@ -483,7 +462,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     );
 
                     global.omnihive.registeredUrls.push({
-                        path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest/${workerMetaData.urlRoute}`,
+                        path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/${workerMetaData.urlRoute}`,
                         type: RegisteredUrlType.RestFunction,
                         metadata: {},
                     });
@@ -515,10 +494,10 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     );
 
                     global.omnihive.registeredUrls.push({
-                        path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs`,
+                        path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs`,
                         type: RegisteredUrlType.Swagger,
                         metadata: {
-                            swaggerJsonUrl: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs/swagger.json`,
+                            swaggerJsonUrl: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs/swagger.json`,
                         },
                     });
                 }

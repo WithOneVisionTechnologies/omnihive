@@ -6,6 +6,5 @@ export class HiveWorkerMetadataLifecycleFunction {
     public lifecycleStage: LifecycleWorkerStage = LifecycleWorkerStage.None;
     public lifecycleOrder: number = 0;
     public lifecycleWorker: string = "";
-    public lifecycleSchema: string = "";
     public lifecycleTables: string[] = [];
 }

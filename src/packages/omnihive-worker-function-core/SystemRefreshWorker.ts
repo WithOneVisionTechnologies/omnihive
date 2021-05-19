@@ -115,7 +115,7 @@ export default class SystemRefreshWorker extends HiveWorkerBase implements IRest
             throw new Error(`Request Denied`);
         }
 
-        if (bodyStructured.adminPassword !== global.omnihive.bootLoaderSettings.baseSettings.adminPassword) {
+        if (bodyStructured.adminPassword !== this.serverSettings.config.adminPassword) {
             throw new Error(`Request Denied`);
         }
     };

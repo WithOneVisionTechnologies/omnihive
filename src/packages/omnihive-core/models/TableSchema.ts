@@ -1,5 +1,4 @@
 export class TableSchema {
-    public schemaName: string = "";
     public tableName: string = "";
     public tableNameCamelCase: string = "";
     public tableNamePascalCase: string = "";
@@ -7,7 +6,6 @@ export class TableSchema {
     public columnNameEntity: string = "";
     public columnTypeDatabase: string = "";
     public columnTypeEntity: string = "";
-    public columnPosition: number = 0;
     public columnIsNullable: boolean = true;
     public columnIsIdentity: boolean = false;
     public columnIsPrimaryKey: boolean = false;

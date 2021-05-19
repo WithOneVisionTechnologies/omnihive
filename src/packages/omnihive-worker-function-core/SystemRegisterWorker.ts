@@ -115,7 +115,7 @@ export default class SystemRegisterWorker extends HiveWorkerBase implements IRes
             throw new Error(`Request Denied`);
         }
 
-        if (bodyStructured.adminPassword !== global.omnihive.bootLoaderSettings.baseSettings.adminPassword) {
+        if (bodyStructured.adminPassword !== this.serverSettings.config.adminPassword) {
             throw new Error(`Request Denied`);
         }
     };

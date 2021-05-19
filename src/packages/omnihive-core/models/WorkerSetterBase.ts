@@ -19,7 +19,7 @@ export abstract class WorkerSetterBase extends WorkerGetterBase {
     public async initWorkers(configs: HiveWorker[]): Promise<void> {
         try {
             for (const hiveWorker of configs) {
-                await AwaitHelper.execute(this.pushWorker(hiveWorker));
+                await this.pushWorker(hiveWorker);
             }
 
             for (const worker of this.registeredWorkers) {
@@ -66,14 +66,7 @@ export abstract class WorkerSetterBase extends WorkerGetterBase {
                     let metaValue: string = hiveWorker.metadata[metaKey] as string;
 
                     metaValue = metaValue.substr(2, metaValue.length - 3);
-
-                    let envValue: unknown | undefined;
-
-                    if (metaValue.includes("process.env")) {
-                        envValue = process.env[metaValue];
-                    } else {
-                        envValue = this.serverSettings.constants[metaValue];
-                    }
+                    const envValue: unknown | undefined = this.serverSettings.constants[metaValue];
 
                     if (envValue) {
                         hiveWorker.metadata[metaKey] = envValue;
@@ -89,9 +82,9 @@ export abstract class WorkerSetterBase extends WorkerGetterBase {
         });
 
         if (registerWorker) {
-            const newWorker: any = await AwaitHelper.execute(import(hiveWorker.importPath));
+            const newWorker: any = await AwaitHelper.execute<any>(import(hiveWorker.importPath));
             const newWorkerInstance: any = new newWorker.default();
-            await AwaitHelper.execute((newWorkerInstance as IHiveWorker).init(hiveWorker));
+            await AwaitHelper.execute<void>((newWorkerInstance as IHiveWorker).init(hiveWorker));
 
             const registeredWorker: RegisteredHiveWorker = {
                 ...hiveWorker,

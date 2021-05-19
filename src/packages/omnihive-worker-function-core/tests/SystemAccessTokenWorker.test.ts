@@ -7,7 +7,6 @@ import objectHash from "object-hash";
 
 import TokenWorker from "../../omnihive-worker-token-jsonwebtoken";
 import SystemAccessTokenWorker from "../SystemAccessTokenWorker";
-import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
 const worker = new SystemAccessTokenWorker();
 
@@ -25,7 +24,7 @@ describe("system access token worker tests", () => {
     describe("worker functions", () => {
         it("execute - no token worker", async () => {
             try {
-                await AwaitHelper.execute(worker.execute(undefined, "", undefined));
+                await worker.execute(undefined, "", undefined);
                 assert.fail("Method expected to fail, but didn't");
             } catch (err) {
                 assert.equal(err.message, "Token Worker cannot be found");
@@ -34,25 +33,23 @@ describe("system access token worker tests", () => {
         it("execute - no parameters", async () => {
             sinon.stub(tokenWorker, "get").resolves("mockToken");
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
-            const result = await AwaitHelper.execute(worker.execute(undefined, "", undefined));
+            const result = await worker.execute(undefined, "", undefined);
             assert.equal(result.status, 400);
             assert.nestedPropertyVal(result.response, "error.message", "Request must have parameters");
         });
         it("execute - no match", async () => {
             sinon.stub(tokenWorker, "get").resolves("mockToken");
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
-            const result = await AwaitHelper.execute(worker.execute(undefined, "", { generator: "mockGenerator" }));
+            const result = await worker.execute(undefined, "", { generator: "mockGenerator" });
             assert.equal(result.status, 400);
             assert.nestedPropertyVal(result.response, "error.message", "Token cannot be generated");
         });
         it("execute", async () => {
             sinon.stub(tokenWorker, "get").resolves("mockToken");
             sinon.stub(WorkerGetterBase.prototype, "getWorker").returns(tokenWorker);
-            const result = await AwaitHelper.execute(
-                worker.execute(undefined, "", {
-                    generator: objectHash(config.metadata, { algorithm: config.metadata.hashAlgorithm }),
-                })
-            );
+            const result = await worker.execute(undefined, "", {
+                generator: objectHash(config.metadata, { algorithm: config.metadata.hashAlgorithm }),
+            });
             assert.equal(result.status, 200);
             assert.nestedProperty(result.response, "token");
         });

@@ -15,16 +15,17 @@ import path from "path";
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
-import { CommandLineArgs } from "./CommandLineArgs";
-import { BootLoaderSettings } from "./BootLoaderSettings";
-import socketIo from "socket.io";
+import WebSocket from "ws";
+import { CommandLineArguments } from "./CommandLineArguments";
+import importFresh from "import-fresh";
 
 export class GlobalObject extends WorkerSetterBase {
-    public adminServer: socketIo.Server | undefined = undefined;
+    public adminServer!: WebSocket.Server;
+    public adminServerTimer!: NodeJS.Timer;
     public appServer: express.Express | undefined = undefined;
-    public bootLoaderSettings: BootLoaderSettings = new BootLoaderSettings();
     public bootWorkerNames: string[] = [];
-    public commandLineArgs: CommandLineArgs = new CommandLineArgs();
+    public commandLineArgs: CommandLineArguments = new CommandLineArguments();
+    public instanceName: string = "default";
     public ohDirName: string = "";
     public registeredSchemas: ConnectionSchema[] = [];
     public registeredUrls: RegisteredUrl[] = [];
@@ -70,15 +71,7 @@ export class GlobalObject extends WorkerSetterBase {
                     let metaValue: string = hiveWorker.metadata[metaKey] as string;
 
                     metaValue = metaValue.substr(2, metaValue.length - 3);
-
-                    let envValue: unknown | undefined;
-
-                    if (metaValue.includes("process.env.")) {
-                        metaValue = metaValue.replace("process.env.", "");
-                        envValue = process.env[metaValue];
-                    } else {
-                        envValue = global.omnihive.serverSettings.constants[metaValue];
-                    }
+                    const envValue: unknown | undefined = global.omnihive.serverSettings.constants[metaValue];
 
                     if (envValue) {
                         hiveWorker.metadata[metaKey] = envValue;
@@ -94,10 +87,9 @@ export class GlobalObject extends WorkerSetterBase {
         });
 
         if (registerWorker) {
-            delete require.cache[require.resolve(hiveWorker.importPath)];
-            const newWorker: any = require(hiveWorker.importPath);
+            const newWorker: any = importFresh(hiveWorker.importPath);
             const newWorkerInstance: any = new newWorker.default();
-            await AwaitHelper.execute((newWorkerInstance as IHiveWorker).init(hiveWorker));
+            await AwaitHelper.execute<void>((newWorkerInstance as IHiveWorker).init(hiveWorker));
 
             const registeredWorker: RegisteredHiveWorker = {
                 ...hiveWorker,
