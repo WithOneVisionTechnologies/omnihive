@@ -8,13 +8,13 @@ import fse from "fs-extra";
 import readPkgUp, { NormalizedReadResult } from "read-pkg-up";
 import { serializeError } from "serialize-error";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
-import { AppService } from "./AppService";
+import { CommonService } from "./CommonService";
 
 export class TaskRunnerService {
     public run = async (worker: string, args: string): Promise<void> => {
         // Run basic app service
         const pkgJson: NormalizedReadResult | undefined = await AwaitHelper.execute(readPkgUp());
-        const appService: AppService = new AppService();
+        const appService: CommonService = new CommonService();
 
         await AwaitHelper.execute(appService.initOmniHiveApp(pkgJson));
 

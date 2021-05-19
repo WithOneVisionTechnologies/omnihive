@@ -6,16 +6,17 @@ import { ConnectionSchema } from "src/packages/omnihive-core/models/ConnectionSc
 import { RegisteredHiveWorker } from "src/packages/omnihive-core/models/RegisteredHiveWorker";
 import { ServerSettings } from "src/packages/omnihive-core/models/ServerSettings";
 import { IHiveWorker } from "src/packages/omnihive-core/interfaces/IHiveWorker";
-import WebSocket from "ws";
 import { CommandLineArgs } from "src/packages/omnihive/models/CommandLineArgs";
+import { BootLoaderSettings } from "src/packages/omnihive/models/BootLoaderSettings";
+import socketio from "socket.io";
 
 declare global {
     declare namespace NodeJS {
         interface Global {
             omnihive: {
-                adminServer: WebSocket.Server;
-                adminServerTimer: NodeJS.Timer;
+                adminServer: socketio.Server | undefined;
                 appServer: express.Express | undefined;
+                bootLoaderSettings: BootLoaderSettings;
                 bootWorkerNames: string[];
                 commandLineArgs: CommandLineArgs;
                 getWorker: <T extends IHiveWorker | undefined>(type: string, name?: string) => T | undefined;

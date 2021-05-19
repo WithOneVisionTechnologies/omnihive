@@ -1,23 +1,15 @@
 import sinon from "sinon";
 import LogWorkerServerDefault from "..";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
-import ws from "ws";
 
 const worker = new LogWorkerServerDefault();
-
-const mockServer = new ws.Server({ port: 65535 });
-const testPort = mockServer.options.port;
-const mockClient = new ws(`ws://localhost:${testPort}`, {});
-mockClient.on("close", () => {
-    mockClient.close();
-});
 
 describe("default log worker tests", () => {
     before(async () => {
         global.omnihive = {
-            adminServer: mockServer,
-            adminServerTimer: undefined!,
+            adminServer: undefined!,
             appServer: undefined!,
+            bootLoaderSettings: undefined!,
             bootWorkerNames: undefined!,
             commandLineArgs: undefined!,
             getWorker: undefined!,
@@ -37,12 +29,10 @@ describe("default log worker tests", () => {
         sinon.restore();
     });
     after(() => {
-        mockServer.close();
-
         global.omnihive = {
             adminServer: undefined!,
-            adminServerTimer: undefined!,
             appServer: undefined!,
+            bootLoaderSettings: undefined!,
             bootWorkerNames: undefined!,
             commandLineArgs: undefined!,
             getWorker: undefined!,

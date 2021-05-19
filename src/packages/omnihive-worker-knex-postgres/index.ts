@@ -55,6 +55,7 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
             }
 
             this.connectionPool = new pg.Pool({ ...this.sqlConfig });
+            this.connectionPool.connect();
 
             const connectionOptions: Knex.Config = {
                 connection: {},
@@ -74,8 +75,7 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
             logWorker?.write(OmniHiveLogLevel.Info, query);
         }
 
-        const client: pg.PoolClient = await AwaitHelper.execute(this.connectionPool.connect());
-        const result = await AwaitHelper.execute(client.query(query));
+        const result = await AwaitHelper.execute(this.connectionPool.query(query));
 
         const returnResults: any[][] = [];
         let currentResultIndex: number = 0;
@@ -90,7 +90,6 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
             currentResultIndex++;
         }
 
-        client.release();
         return returnResults;
     };
 

@@ -1,7 +1,7 @@
 {
-    "name": "@withonevision/omnihive-worker-pubsubclient-socketio",
+    "name": "@withonevision/omnihive-worker-config-postgres",
     "version": "0.0.1",
-    "description": "OmniHive SocketIO PubSub Client Worker",
+    "description": "OmniHive Postgres Config Worker",
     "license": "MIT",
     "author": {
         "name": "With One Vision Technologies",
@@ -24,10 +24,12 @@
     },
     "dependencies": {
         "@withonevision/omnihive-core": "workspace:*",
-        "serialize-error": "8.1.0",
-        "socket.io-client": "4.1.0"
+        "knex": "0.95.4",
+        "pg": "8.6.0",
+        "serialize-error": "8.1.0"
     },
     "devDependencies": {
+        "@types/pg": "7.14.11",
         "chai": "4.3.4",
         "typescript": "4.2.4"
     }

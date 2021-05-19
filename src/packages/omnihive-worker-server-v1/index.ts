@@ -326,7 +326,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
 
                         if ((await featureWorker?.get<boolean>("graphPlayground")) ?? true) {
                             graphDatabaseConfig.playground = {
-                                endpoint: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
+                                endpoint: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
                             };
                         } else {
                             graphDatabaseConfig.playground = false;
@@ -339,7 +339,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                         });
 
                         global.omnihive.registeredUrls.push({
-                            path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
+                            path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/${builderMeta.urlRoute}/${dbWorkerMeta.urlRoute}`,
                             type: RegisteredUrlType.GraphDatabase,
                             metadata: {},
                         });
@@ -385,7 +385,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
 
                 if ((await featureWorker?.get<boolean>("graphPlayground")) ?? true) {
                     graphFunctionConfig.playground = {
-                        endpoint: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
+                        endpoint: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
                     };
                 } else {
                     graphFunctionConfig.playground = false;
@@ -398,7 +398,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                 });
 
                 global.omnihive.registeredUrls.push({
-                    path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
+                    path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/graphql`,
                     type: RegisteredUrlType.GraphFunction,
                     metadata: {},
                 });
@@ -425,7 +425,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     openapi: "3.0.0",
                     servers: [
                         {
-                            url: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest`,
+                            url: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest`,
                         },
                     ],
                 };
@@ -474,8 +474,8 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                                     res.status(workerResponse.status).send(true);
                                 }
                             } catch (e) {
-                                return res.status(500).render("500", {
-                                    rootUrl: global.omnihive.serverSettings.config.webRootUrl,
+                                return res.status(500).render("pages/500", {
+                                    rootUrl: global.omnihive.bootLoaderSettings.baseSettings.webRootUrl,
                                     error: serializeError(e),
                                 });
                             }
@@ -483,7 +483,7 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     );
 
                     global.omnihive.registeredUrls.push({
-                        path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/${workerMetaData.urlRoute}`,
+                        path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest/${workerMetaData.urlRoute}`,
                         type: RegisteredUrlType.RestFunction,
                         metadata: {},
                     });
@@ -515,10 +515,10 @@ export default class CoreServerWorker extends HiveWorkerBase implements IServerW
                     );
 
                     global.omnihive.registeredUrls.push({
-                        path: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs`,
+                        path: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs`,
                         type: RegisteredUrlType.Swagger,
                         metadata: {
-                            swaggerJsonUrl: `${global.omnihive.serverSettings.config.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs/swagger.json`,
+                            swaggerJsonUrl: `${global.omnihive.bootLoaderSettings.baseSettings.webRootUrl}/${this.metadata.urlRoute}/custom/rest/api-docs/swagger.json`,
                         },
                     });
                 }

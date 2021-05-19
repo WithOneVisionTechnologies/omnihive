@@ -15,14 +15,14 @@ import path from "path";
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
-import WebSocket from "ws";
-import importFresh from "import-fresh";
 import { CommandLineArgs } from "./CommandLineArgs";
+import { BootLoaderSettings } from "./BootLoaderSettings";
+import socketIo from "socket.io";
 
 export class GlobalObject extends WorkerSetterBase {
-    public adminServer!: WebSocket.Server;
-    public adminServerTimer!: NodeJS.Timer;
+    public adminServer: socketIo.Server | undefined = undefined;
     public appServer: express.Express | undefined = undefined;
+    public bootLoaderSettings: BootLoaderSettings = new BootLoaderSettings();
     public bootWorkerNames: string[] = [];
     public commandLineArgs: CommandLineArgs = new CommandLineArgs();
     public ohDirName: string = "";
@@ -94,7 +94,8 @@ export class GlobalObject extends WorkerSetterBase {
         });
 
         if (registerWorker) {
-            const newWorker: any = importFresh(hiveWorker.importPath);
+            delete require.cache[require.resolve(hiveWorker.importPath)];
+            const newWorker: any = require(hiveWorker.importPath);
             const newWorkerInstance: any = new newWorker.default();
             await AwaitHelper.execute((newWorkerInstance as IHiveWorker).init(hiveWorker));
 

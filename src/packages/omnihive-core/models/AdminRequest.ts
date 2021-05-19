@@ -1,5 +1,4 @@
-export class AdminEvent<T = {}> {
+export class AdminRequest<T = {}> {
     public adminPassword: string = "";
-    public event: string = "";
     public data?: T | undefined = undefined;
 }

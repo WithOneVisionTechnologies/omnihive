@@ -43,7 +43,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
 
         try {
             await AwaitHelper.execute(super.init(config));
-            this.metadata = this.checkObjectStructure<SqliteWorkerMetadata>(SqliteWorkerMetadata, config.metadata);
+            this.metadata = this.checkObjectStructure<SqliteWorkerMetadata>(SqliteWorkerMetadata, sqliteMetadata);
 
             if (!fse.existsSync(this.metadata.filename)) {
                 throw new Error("Sqlite database cannot be found");

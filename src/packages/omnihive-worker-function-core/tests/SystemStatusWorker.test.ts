@@ -14,12 +14,6 @@ worker.serverSettings = {
     constants: {},
     features: {},
     workers: [],
-    config: {
-        adminPassword: "correctPassword",
-        adminPortNumber: 9999,
-        nodePortNumber: 9999,
-        webRootUrl: "http://mock.example.com",
-    },
 };
 
 const testService = new TestService();
@@ -33,8 +27,8 @@ describe("system status worker tests", () => {
     before(() => {
         global.omnihive = {
             adminServer: undefined!,
-            adminServerTimer: undefined!,
             appServer: undefined!,
+            bootLoaderSettings: undefined!,
             bootWorkerNames: undefined!,
             commandLineArgs: undefined!,
             getWorker: undefined!,
@@ -45,7 +39,7 @@ describe("system status worker tests", () => {
             registeredWorkers: undefined!,
             registeredUrls: undefined!,
             serverError: undefined!,
-            serverStatus: ServerStatus.Online!,
+            serverStatus: undefined!,
             serverSettings: undefined!,
             webServer: undefined!,
         };
@@ -56,8 +50,8 @@ describe("system status worker tests", () => {
     after(() => {
         global.omnihive = {
             adminServer: undefined!,
-            adminServerTimer: undefined!,
             appServer: undefined!,
+            bootLoaderSettings: undefined!,
             bootWorkerNames: undefined!,
             commandLineArgs: undefined!,
             getWorker: undefined!,

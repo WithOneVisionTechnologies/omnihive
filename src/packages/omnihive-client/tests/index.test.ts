@@ -32,7 +32,7 @@ describe("client tests", function () {
 
         it("init", async function () {
             const clientSettings: ClientSettings = {
-                rootUrl: testService.serverSettings.config.webRootUrl,
+                rootUrl: "http://localhost:3001",
                 tokenMetadata: {
                     audience: testService.getConstants()["ohTokenAudience"],
                     secret: testService.getConstants()["ohTokenSecret"],

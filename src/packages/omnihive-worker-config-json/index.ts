@@ -10,11 +10,11 @@ import path from "path";
 import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
 
 export class JsonConfigWorkerMetadata {
-    public settingsPath: string = "";
+    public configPath: string = "";
 }
 
 export default class JsonConfigWorker extends HiveWorkerBase implements IConfigWorker {
-    private settingsPath: string = "";
+    private configPath: string = "";
 
     constructor() {
         super();
@@ -28,31 +28,31 @@ export default class JsonConfigWorker extends HiveWorkerBase implements IConfigW
                 config.metadata
             );
 
-            if (this.pathExists(metadata.settingsPath)) {
-                this.settingsPath = metadata.settingsPath;
+            if (this.pathExists(metadata.configPath)) {
+                this.configPath = metadata.configPath;
             }
 
             if (
-                StringHelper.isNullOrWhiteSpace(this.settingsPath) &&
-                this.pathExists(path.join(global.omnihive.ohDirName, metadata.settingsPath))
+                StringHelper.isNullOrWhiteSpace(this.configPath) &&
+                this.pathExists(path.join(global.omnihive.ohDirName, metadata.configPath))
             ) {
-                this.settingsPath = path.join(global.omnihive.ohDirName, metadata.settingsPath);
+                this.configPath = path.join(global.omnihive.ohDirName, metadata.configPath);
             }
 
             if (
-                StringHelper.isNullOrWhiteSpace(this.settingsPath) &&
+                StringHelper.isNullOrWhiteSpace(this.configPath) &&
                 !StringHelper.isNullOrWhiteSpace(global.omnihive.commandLineArgs.environmentFile) &&
                 this.pathExists(
-                    path.join(path.parse(global.omnihive.commandLineArgs.environmentFile).dir, metadata.settingsPath)
+                    path.join(path.parse(global.omnihive.commandLineArgs.environmentFile).dir, metadata.configPath)
                 )
             ) {
-                this.settingsPath = path.join(
+                this.configPath = path.join(
                     path.parse(global.omnihive.commandLineArgs.environmentFile).dir,
-                    metadata.settingsPath
+                    metadata.configPath
                 );
             }
 
-            if (StringHelper.isNullOrWhiteSpace(this.settingsPath)) {
+            if (StringHelper.isNullOrWhiteSpace(this.configPath)) {
                 throw new Error("Json Config Worker Path Not Available");
             }
         } catch (err) {
@@ -61,11 +61,11 @@ export default class JsonConfigWorker extends HiveWorkerBase implements IConfigW
     }
 
     public get = async (): Promise<ServerSettings> => {
-        return ObjectHelper.create<ServerSettings>(ServerSettings, JSON.parse(this.readFile(this.settingsPath)));
+        return ObjectHelper.create<ServerSettings>(ServerSettings, JSON.parse(this.readFile(this.configPath)));
     };
 
     public set = async (settings: ServerSettings): Promise<boolean> => {
-        this.writeJsonToFile(this.settingsPath, settings);
+        this.writeJsonToFile(this.configPath, settings);
         return true;
     };
 

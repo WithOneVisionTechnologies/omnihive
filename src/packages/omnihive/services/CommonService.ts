@@ -10,7 +10,7 @@ import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerTyp
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 
-export class AppService {
+export class CommonService {
     public initOmniHiveApp = async (packageJson: NormalizedReadResult | undefined) => {
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
@@ -18,17 +18,20 @@ export class AppService {
         );
 
         // Cleanup Reset
-        global.omnihive.registeredSchemas = [];
-        global.omnihive.registeredUrls = [];
+        global.omnihive.registeredSchemas.splice(0, global.omnihive.registeredSchemas.length);
+        global.omnihive.registeredUrls.splice(0, global.omnihive.registeredUrls.length);
 
         const prunedHiveWorkers: RegisteredHiveWorker[] = [];
 
         global.omnihive.registeredWorkers.forEach((worker: RegisteredHiveWorker) => {
             if (global.omnihive.bootWorkerNames.includes(worker.name)) {
                 prunedHiveWorkers.push(worker);
+            } else {
+                delete require.cache[require.resolve(worker.importPath)];
             }
         });
 
+        global.omnihive.registeredWorkers.splice(0, global.omnihive.registeredWorkers.length);
         global.omnihive.registeredWorkers = prunedHiveWorkers;
 
         // Load Core Workers
