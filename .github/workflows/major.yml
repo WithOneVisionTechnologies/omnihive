@@ -25,7 +25,9 @@ jobs:
                   echo ${{secrets.GH_CLI_AUTH_TOKEN}} > gh.txt
                   gh auth login --with-token < gh.txt
             - name: Create GitHub Release
-              run: gh release create ${{ steps.version.outputs.VERSION }} ./dist/packages/omnihive
+              run: |
+                  tar -czvf omnihive.tar.gz ./dist/packages/omnihive
+                  gh release create ${{ steps.version.outputs.VERSION }} omnihive.tar.gz
             - name: Log into Docker Hub
               users: docker/login-action@v1
               with:
