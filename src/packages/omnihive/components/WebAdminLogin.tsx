@@ -15,22 +15,11 @@ const pauseTimeout: number = 2000;
 
 const WebAdminLogin: React.FC<Props> = (props): React.ReactElement => {
     const [adminPassword, setAdminPassword] = React.useState<string>("");
-    const [serverGroupId, setServerGroupId] = React.useState<string>("");
     const [processing, setProcessing] = React.useState<boolean>(false);
     const [showToastSuccess, setShowToastSuccess] = React.useState<boolean>(false);
     const [showToastError, setShowToastError] = React.useState<boolean>(false);
     const [toastErrorMessage, setToastErrorMessage] = React.useState<string>("");
     const [adminPasswordError, setAdminPasswordError] = React.useState<string>("");
-    const [serverGroupIdError, setServerGroupIdError] = React.useState<string>("");
-
-    const checkServerGroupId = (value: string) => {
-        if (IsHelper.isEmptyStringOrWhitespace(value)) {
-            setServerGroupIdError("Server Group ID cannot be blank");
-            return;
-        }
-
-        setServerGroupIdError("");
-    };
 
     const checkAdminPassword = (value: string) => {
         if (IsHelper.isEmptyStringOrWhitespace(value)) {
@@ -46,11 +35,11 @@ const WebAdminLogin: React.FC<Props> = (props): React.ReactElement => {
             return true;
         }
 
-        if (adminPassword === "" || serverGroupId === "") {
+        if (adminPassword === "") {
             return true;
         }
 
-        if (adminPasswordError !== "" || serverGroupIdError !== "") {
+        if (adminPasswordError !== "") {
             return true;
         }
 
@@ -86,7 +75,7 @@ const WebAdminLogin: React.FC<Props> = (props): React.ReactElement => {
     const submit = async () => {
         setProcessing(true);
 
-        if (serverGroupId === props.serverGroupId && adminPassword === props.adminPassword) {
+        if (adminPassword === props.adminPassword) {
             await store2("ohAdminLogin", { isLoggedIn: true, loggedInDate: dayjs().format() });
             showSuccess();
             setProcessing(false);
@@ -117,21 +106,6 @@ const WebAdminLogin: React.FC<Props> = (props): React.ReactElement => {
                         <div className="text-2xl text-yellow-600">ADMIN LOGIN</div>
                     </div>
                     <div>
-                        <div className="mb-6">
-                            <label className="block text-gray-500 text-sm font-bold mb-2">Server Group ID</label>
-                            <input
-                                className="px-2 py-2 placeholder-gray-400 text-gray-700 relative bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-full"
-                                style={serverGroupIdError !== "" ? { border: "2px solid red" } : {}}
-                                type="password"
-                                name="serverGroupId"
-                                value={serverGroupId}
-                                onChange={(e) => {
-                                    setServerGroupId(e.target.value);
-                                    checkServerGroupId(e.target.value);
-                                }}
-                            />
-                            {serverGroupIdError !== "" && <div className="pt-2 text-red-600">{serverGroupIdError}</div>}
-                        </div>
                         <div className="mb-6">
                             <label className="block text-gray-500 text-sm font-bold mb-2">Admin Password</label>
                             <input
