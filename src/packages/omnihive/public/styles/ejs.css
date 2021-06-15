@@ -1,0 +1,17 @@
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background-color: #1e1e1e;
+}
+
+.sidebar {
+    background-color: #555a5f;
+}
+
+.sidebar-focused {
+    background-color: #757a7f;
+}

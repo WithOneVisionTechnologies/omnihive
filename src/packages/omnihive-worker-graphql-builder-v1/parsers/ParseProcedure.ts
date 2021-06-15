@@ -2,14 +2,13 @@
 
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
 import { IDatabaseWorker } from "@withonevision/omnihive-core/interfaces/IDatabaseWorker";
-import { IFeatureWorker } from "@withonevision/omnihive-core/interfaces/IFeatureWorker";
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
 import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
 import { GraphContext } from "@withonevision/omnihive-core/models/GraphContext";
 import { ProcFunctionSchema } from "@withonevision/omnihive-core/models/ProcFunctionSchema";
 import { FieldNode, GraphQLResolveInfo, SelectionNode } from "graphql";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export class ParseProcedure {
     public parse = async (
@@ -22,48 +21,42 @@ export class ParseProcedure {
             workerName
         );
 
-        if (!databaseWorker) {
+        if (IsHelper.isNullOrUndefined(databaseWorker)) {
             throw new Error(
                 "Database Worker Not Defined.  This graph converter will not work without a database worker."
             );
         }
 
-        const featureWorker: IFeatureWorker | undefined = global.omnihive.getWorker<IFeatureWorker | undefined>(
-            HiveWorkerType.Feature
-        );
-
         const tokenWorker: ITokenWorker | undefined = global.omnihive.getWorker<ITokenWorker | undefined>(
             HiveWorkerType.Token
         );
 
-        let disableSecurity = false;
+        let disableSecurity: boolean =
+            global.omnihive.getEnvironmentVariable<boolean>("OH_SECURITY_DISABLE_TOKEN_CHECK") ?? false;
 
-        if (featureWorker) {
-            disableSecurity =
-                (await AwaitHelper.execute(featureWorker?.get<boolean>("disableSecurity", false))) ?? false;
-        }
-
-        if (!disableSecurity && !tokenWorker) {
+        if (!disableSecurity && IsHelper.isNullOrUndefined(tokenWorker)) {
             throw new Error("[ohAccessError] No token worker defined.");
         }
 
         if (
             !disableSecurity &&
-            tokenWorker &&
-            (!omniHiveContext || !omniHiveContext.access || StringHelper.isNullOrWhiteSpace(omniHiveContext.access))
+            !IsHelper.isNullOrUndefined(tokenWorker) &&
+            (IsHelper.isNullOrUndefined(omniHiveContext) ||
+                IsHelper.isNullOrUndefined(omniHiveContext.access) ||
+                IsHelper.isEmptyStringOrWhitespace(omniHiveContext.access))
         ) {
             throw new Error("[ohAccessError] Access token is invalid or expired.");
         }
 
         if (
             !disableSecurity &&
-            tokenWorker &&
-            omniHiveContext &&
-            omniHiveContext.access &&
-            !StringHelper.isNullOrWhiteSpace(omniHiveContext.access)
+            !IsHelper.isNullOrUndefined(tokenWorker) &&
+            !IsHelper.isNullOrUndefined(omniHiveContext) &&
+            !IsHelper.isNullOrUndefined(omniHiveContext.access) &&
+            !IsHelper.isEmptyStringOrWhitespace(omniHiveContext.access)
         ) {
             const verifyToken: boolean = await AwaitHelper.execute(tokenWorker.verify(omniHiveContext.access));
-            if (verifyToken === false) {
+            if (!verifyToken) {
                 throw new Error("[ohAccessError] Access token is invalid or expired.");
             }
         }
@@ -73,7 +66,7 @@ export class ParseProcedure {
         );
         let fullSchema: ProcFunctionSchema[] = [];
 
-        if (schema) {
+        if (!IsHelper.isNullOrUndefined(schema)) {
             fullSchema = schema.procFunctions;
         }
 
@@ -85,7 +78,7 @@ export class ParseProcedure {
             const callFieldNode = call as FieldNode;
             const inputArgs: readonly SelectionNode[] | undefined = callFieldNode.selectionSet?.selections;
 
-            if (!inputArgs) {
+            if (IsHelper.isNullOrUndefined(inputArgs)) {
                 throw new Error("Procedure Graph Construction is Incorrect");
             }
 
@@ -95,7 +88,7 @@ export class ParseProcedure {
                     return s.name === selectionFieldNode.name.value;
                 });
 
-                if (!proc || proc.length <= 0) {
+                if (IsHelper.isNullOrUndefined(proc) || IsHelper.isEmptyArray(proc)) {
                     throw new Error("Procedure Graph Construction is Incorrect");
                 }
 

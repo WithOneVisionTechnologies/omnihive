@@ -1,6 +1,7 @@
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IFeatureWorker } from "@withonevision/omnihive-core/interfaces/IFeatureWorker";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
@@ -43,10 +44,11 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
     public async init(config: HiveWorker): Promise<void> {
         try {
             await AwaitHelper.execute(super.init(config));
-            const metadata: LaunchDarklyNodeFeatureWorkerMetadata = this.checkObjectStructure<LaunchDarklyNodeFeatureWorkerMetadata>(
-                LaunchDarklyNodeFeatureWorkerMetadata,
-                config.metadata
-            );
+            const metadata: LaunchDarklyNodeFeatureWorkerMetadata =
+                this.checkObjectStructure<LaunchDarklyNodeFeatureWorkerMetadata>(
+                    LaunchDarklyNodeFeatureWorkerMetadata,
+                    config.metadata
+                );
 
             const ldInstance: LaunchDarkly.LDClient = LaunchDarkly.init(metadata.sdkKey);
 
@@ -73,20 +75,22 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
     }
 
     public get = async <T extends unknown>(name: string, defaultValue?: unknown): Promise<T | undefined> => {
-        if (!name || name.length <= 0) {
+        if (IsHelper.isNullOrUndefined(name) || IsHelper.isEmptyStringOrWhitespace(name)) {
             throw new Error("No feature name given.");
         }
 
         const logWorker: ILogWorker | undefined = this.getWorker<ILogWorker | undefined>(HiveWorkerType.Log);
 
-        const feature: LaunchDarklyFeature[] = this.features.filter((ff: LaunchDarklyFeature) => ff.name === name);
+        const feature: LaunchDarklyFeature | undefined = this.features.find(
+            (ff: LaunchDarklyFeature) => ff.name === name
+        );
 
-        if (feature.length > 0) {
+        if (!IsHelper.isNullOrUndefined(feature)) {
             logWorker?.write(
                 OmniHiveLogLevel.Info,
-                `Feature Evaluated => Project: ${this.project} => Flag: ${name} => Value: ${feature[0].value as string}`
+                `Feature Evaluated => Project: ${this.project} => Flag: ${name} => Value: ${feature.value as string}`
             );
-            return feature[0].value as T;
+            return feature.value as T;
         }
 
         let value: any;
@@ -106,11 +110,11 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
                     `Feature Changed => Project: ${this.project} => Flag: ${name} => New Value: ${newValue as string}`
                 );
 
-                const changeFeature: LaunchDarklyFeature[] = this.features.filter(
+                const changeFeature: LaunchDarklyFeature | undefined = this.features.find(
                     (ff: LaunchDarklyFeature) => ff.name === name
                 );
 
-                if (changeFeature.length === 0) {
+                if (IsHelper.isNullOrUndefined(changeFeature)) {
                     this.features.push({ name, value: newValue });
                 } else {
                     this.features.filter((ff: LaunchDarklyFeature) => ff.name === name)[0].value = newValue;
@@ -127,7 +131,7 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
     };
 
     public isConnected = () => {
-        if (this.client) {
+        if (!IsHelper.isNullOrUndefined(this.client)) {
             return this.client.ready;
         }
 
@@ -135,7 +139,7 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
     };
 
     public disconnect = async () => {
-        if (this.client) {
+        if (!IsHelper.isNullOrUndefined(this.client)) {
             await AwaitHelper.execute(this.client.instance.flush());
             this.client.instance.close();
             this.client.ready = false;

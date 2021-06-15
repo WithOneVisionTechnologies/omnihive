@@ -6,21 +6,21 @@ import { RestMethod } from "@withonevision/omnihive-core/enums/RestMethod";
 import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
 import { IEncryptionWorker } from "@withonevision/omnihive-core/interfaces/IEncryptionWorker";
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
-import { ClientSettings } from "@withonevision/omnihive-core/models/ClientSettings";
 import { WorkerSetterBase } from "@withonevision/omnihive-core/models/WorkerSetterBase";
 import objectHash from "object-hash";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export class OmniHiveClient extends WorkerSetterBase {
     private static singleton: OmniHiveClient;
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     private constructor() {
         super();
     }
 
     public static getSingleton = (): OmniHiveClient => {
-        if (!OmniHiveClient.singleton) {
+        if (!IsHelper.isNullOrUndefined(OmniHiveClient.singleton)) {
             OmniHiveClient.singleton = new OmniHiveClient();
         }
 
@@ -29,22 +29,28 @@ export class OmniHiveClient extends WorkerSetterBase {
 
     public accessToken: string = "";
     public authToken: string = "";
-    private clientSettings: ClientSettings | undefined = undefined;
+    private rootUrl: string = "";
+    private tokenMetadata: any = {};
 
     public static getNew = (): OmniHiveClient => {
         return new OmniHiveClient();
     };
 
-    public init = async (clientSettings: ClientSettings): Promise<void> => {
-        this.clientSettings = clientSettings;
+    public init = async (rootUrl: string, appSettings: AppSettings): Promise<void> => {
+        this.rootUrl = rootUrl;
+        this.appSettings = appSettings;
 
-        if (clientSettings && clientSettings.workers && clientSettings.workers.length > 0) {
-            await AwaitHelper.execute(this.initWorkers(clientSettings.workers));
+        if (
+            !IsHelper.isNullOrUndefined(appSettings) &&
+            !IsHelper.isNullOrUndefined(appSettings.workers) &&
+            !IsHelper.isEmptyArray(appSettings.workers)
+        ) {
+            await AwaitHelper.execute(this.initWorkers());
 
             const tokenWorker = this.getWorker<ITokenWorker | undefined>(HiveWorkerType.Token);
 
-            if (tokenWorker) {
-                this.clientSettings.tokenMetadata = tokenWorker.config.metadata;
+            if (!IsHelper.isNullOrUndefined(tokenWorker)) {
+                this.tokenMetadata = tokenWorker.config.metadata;
             }
         }
     };
@@ -59,21 +65,21 @@ export class OmniHiveClient extends WorkerSetterBase {
         const graphCall: Promise<any> = new Promise<any>((resolve, reject) => {
             const config: any = {};
 
-            if (!headers) {
+            if (IsHelper.isNullOrUndefined(headers)) {
                 config.headers = {};
-            } else if (Object.keys(headers).length > 0) {
+            } else if (!IsHelper.isEmptyObject(headers)) {
                 config.headers = headers;
             }
 
-            if (this.accessToken !== "") {
+            if (!IsHelper.isEmptyStringOrWhitespace(this.accessToken)) {
                 config.headers["x-omnihive-access"] = this.accessToken;
             }
 
-            if (this.authToken !== "") {
+            if (!IsHelper.isEmptyStringOrWhitespace(this.authToken)) {
                 config.headers["authorization"] = "BEARER " + this.authToken;
             }
 
-            if (!(cacheType === null || cacheType === undefined)) {
+            if (!IsHelper.isNullOrUndefined(cacheType)) {
                 switch (cacheType) {
                     case QueryCacheType.None:
                         config.headers["x-omnihive-cache-type"] = "none";
@@ -89,7 +95,7 @@ export class OmniHiveClient extends WorkerSetterBase {
                 config.headers["x-omnihive-cache-type"] = "none";
             }
 
-            if (!(cacheExpireInSeconds === null || cacheExpireInSeconds === undefined)) {
+            if (!IsHelper.isNullOrUndefined(cacheExpireInSeconds)) {
                 try {
                     const cacheTimeNumber: number = +cacheExpireInSeconds;
                     config.headers["x-omnihive-cache-seconds"] = cacheTimeNumber;
@@ -106,7 +112,10 @@ export class OmniHiveClient extends WorkerSetterBase {
             axios
                 .post(graphUrl, JSON.stringify(dataObject), config as Object)
                 .then((response) => {
-                    if (response.data.errors != null && response.data.errors.length > 0) {
+                    if (
+                        !IsHelper.isNullOrUndefined(response.data.errors) &&
+                        !IsHelper.isEmptyArray(response.data.errors)
+                    ) {
                         const errorString: StringBuilder = new StringBuilder();
 
                         response.data.errors.forEach((err: any) => {
@@ -122,11 +131,14 @@ export class OmniHiveClient extends WorkerSetterBase {
                     if (error.message.includes("[ohAccessError]")) {
                         this.getNewToken()
                             .then((newToken: string | undefined) => {
-                                if (!newToken) {
+                                if (
+                                    IsHelper.isNullOrUndefined(newToken) ||
+                                    IsHelper.isEmptyStringOrWhitespace(newToken)
+                                ) {
                                     throw new Error("[ohAccessError] Could not retrieve token");
                                 }
 
-                                this.accessToken = newToken;
+                                this.accessToken = newToken ?? "";
                                 this.graphClient(graphUrl, query, cacheType, cacheExpireInSeconds, headers)
                                     .then((value) => resolve(value))
                                     .catch((error) => reject(error));
@@ -147,23 +159,23 @@ export class OmniHiveClient extends WorkerSetterBase {
         return new Promise<AxiosResponse<any>>((resolve, reject) => {
             const config: AxiosRequestConfig = { url: url };
 
-            if (headers == null) {
+            if (IsHelper.isNullOrUndefined(headers)) {
                 headers = {};
             }
 
-            if (this.accessToken !== "") {
+            if (!IsHelper.isEmptyStringOrWhitespace(this.accessToken)) {
                 config.headers["x-omnihive-access"] = this.accessToken;
             }
 
-            if (this.authToken !== "") {
+            if (!IsHelper.isEmptyStringOrWhitespace(this.authToken)) {
                 config.headers["authorization"] = "BEARER " + this.authToken;
             }
 
-            if (Object.keys(headers).length > 0) {
+            if (!IsHelper.isEmptyObject(headers)) {
                 config.headers = headers;
             }
 
-            if (data != null) {
+            if (!IsHelper.isNullOrUndefined(data)) {
                 config.data = data;
             }
 
@@ -187,7 +199,10 @@ export class OmniHiveClient extends WorkerSetterBase {
 
             axios(config)
                 .then((response: AxiosResponse) => {
-                    if (response.data.errors != null && response.data.errors.length > 0) {
+                    if (
+                        !IsHelper.isNullOrUndefined(response.data.errors) &&
+                        !IsHelper.isEmptyArray(response.data.errors)
+                    ) {
                         const errorString: StringBuilder = new StringBuilder();
 
                         response.data.errors.forEach((err: any) => {
@@ -203,11 +218,14 @@ export class OmniHiveClient extends WorkerSetterBase {
                     if (error.message.includes("[ohAccessError]")) {
                         this.getNewToken()
                             .then((newToken: string | undefined) => {
-                                if (!newToken) {
+                                if (
+                                    IsHelper.isNullOrUndefined(newToken) ||
+                                    IsHelper.isEmptyStringOrWhitespace(newToken)
+                                ) {
                                     throw new Error("[ohAccessError] Could not retrieve token");
                                 }
 
-                                this.accessToken = newToken;
+                                this.accessToken = newToken ?? "";
                                 this.restClient(url, method, headers, data)
                                     .then((value) => resolve(value))
                                     .catch((error) => reject(error));
@@ -225,7 +243,10 @@ export class OmniHiveClient extends WorkerSetterBase {
     public runCustomSql = async (url: string, sql: string, encryptionWorkerName?: string): Promise<any> => {
         let encryptionWorker: IEncryptionWorker | undefined = undefined;
 
-        if (encryptionWorkerName) {
+        if (
+            !IsHelper.isNullOrUndefined(encryptionWorkerName) &&
+            !IsHelper.isEmptyStringOrWhitespace(encryptionWorkerName)
+        ) {
             encryptionWorker = this.getWorker<IEncryptionWorker | undefined>(
                 HiveWorkerType.Encryption,
                 encryptionWorkerName
@@ -234,7 +255,7 @@ export class OmniHiveClient extends WorkerSetterBase {
             encryptionWorker = this.getWorker<IEncryptionWorker | undefined>(HiveWorkerType.Encryption);
         }
 
-        if (!encryptionWorker) {
+        if (IsHelper.isNullOrUndefined(encryptionWorker)) {
             throw new Error("No encryption worker found.  An encryption worker is required for custom SQL");
         }
 
@@ -267,7 +288,7 @@ export class OmniHiveClient extends WorkerSetterBase {
         const tokenWorker = this.getWorker<ITokenWorker | undefined>(HiveWorkerType.Token);
         let newToken: string = "";
 
-        if (tokenWorker) {
+        if (!IsHelper.isNullOrUndefined(tokenWorker)) {
             try {
                 newToken = await AwaitHelper.execute(tokenWorker.get());
                 return newToken;
@@ -276,12 +297,12 @@ export class OmniHiveClient extends WorkerSetterBase {
             }
         }
 
-        if (this.clientSettings?.tokenMetadata) {
+        if (!IsHelper.isNullOrUndefined(this.tokenMetadata)) {
             const restPromise = new Promise<AxiosResponse<{ token: string }>>((resolve, reject) => {
-                const config: AxiosRequestConfig = { url: `${this.clientSettings?.rootUrl}/ohAdmin/rest/token` };
+                const config: AxiosRequestConfig = { url: `${this.rootUrl}/ohAdmin/rest/token` };
                 config.data = {
-                    generator: objectHash(this.clientSettings?.tokenMetadata, {
-                        algorithm: this.clientSettings?.tokenMetadata.hashAlgorithm,
+                    generator: objectHash(this.tokenMetadata, {
+                        algorithm: this.tokenMetadata.hashAlgorithm,
                         respectType: false,
                     }),
                 };
@@ -289,7 +310,10 @@ export class OmniHiveClient extends WorkerSetterBase {
 
                 axios(config)
                     .then((response: AxiosResponse) => {
-                        if (response.data.errors != null && response.data.errors.length > 0) {
+                        if (
+                            !IsHelper.isNullOrUndefined(response.data.errors) &&
+                            !IsHelper.isEmptyArray(response.data.errors)
+                        ) {
                             const errorString: StringBuilder = new StringBuilder();
 
                             response.data.errors.forEach((err: any) => {

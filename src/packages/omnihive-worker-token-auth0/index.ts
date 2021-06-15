@@ -1,5 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -67,7 +67,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
             const currentTimestamp = Math.floor(Date.now().valueOf() / 1000);
             const decoded: any = jwtDecode(token);
 
-            if (decoded.azp !== clientId || decoded.exp === "undefined" || currentTimestamp > decoded.exp) {
+            if (decoded.azp !== clientId || IsHelper.isUndefined(decoded.exp) || currentTimestamp > decoded.exp) {
                 throw new Error("[ohAccessError] Access token is either the wrong client or expired");
             }
 
@@ -78,16 +78,16 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
     };
 
     public verify = async (token: string): Promise<boolean> => {
-        if (this.metadata.verifyOn === false) {
+        if (!this.metadata.verifyOn) {
             return true;
         }
 
-        if (StringHelper.isNullOrWhiteSpace(token)) {
+        if (IsHelper.isNullOrUndefined(token) || IsHelper.isEmptyStringOrWhitespace(token)) {
             throw new Error("[ohAccessError] No access token was given");
         }
 
-        const clientId = token.split("||")[0];
-        token = token.split("||")[1];
+        const clientId = (token as string).split("||")[0];
+        token = (token as string).split("||")[1];
 
         const sections: string[] = token.split(".");
 

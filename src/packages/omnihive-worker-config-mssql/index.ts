@@ -5,9 +5,11 @@ import knex, { Knex } from "knex";
 import sql from "mssql";
 import { serializeError } from "serialize-error";
 import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
-import { ServerSettings } from "@withonevision/omnihive-core/models/ServerSettings";
 import { HiveWorkerMetadataConfigDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataConfigDatabase";
 import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
+import { EnvironmentVariableType } from "@withonevision/omnihive-core/enums/EnvironmentVariableType";
+import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
+import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
 
 export default class MssqlConfigWorker extends HiveWorkerBase implements IConfigWorker {
     public connection!: Knex;
@@ -56,30 +58,21 @@ export default class MssqlConfigWorker extends HiveWorkerBase implements IConfig
         }
     }
 
-    public get = async (): Promise<ServerSettings> => {
+    public get = async (): Promise<AppSettings> => {
         const srvConfigBaseSql = `
             SELECT   config_id
                     ,config_name
             FROM oh_srv_config_base 
             WHERE config_name = '${this.metadata.configName}'`;
 
-        const srvConfigConstantsSql = `
-            SELECT   c.config_id
-                    ,c.constant_key
-                    ,c.constant_value
-                    ,c.constant_datatype
-            FROM oh_srv_config_constants c
+        const srvConfigEnvironmentSql = `
+            SELECT   e.config_id
+                    ,e.environment_key
+                    ,e.environment_value
+                    ,e.environment_datatype
+            FROM oh_srv_config_environment e
                 INNER JOIN oh_srv_config_base b
-                    on c.config_id = b.config_id
-            WHERE b.config_name = '${this.metadata.configName}'`;
-
-        const srvConfigFeaturesSql = `
-            SELECT   f.config_id
-                    ,f.feature_key
-                    ,f.feature_value
-            FROM oh_srv_config_features f
-                INNER JOIN oh_srv_config_base b
-                    on f.config_id = b.config_id
+                    on e.config_id = b.config_id
             WHERE b.config_name = '${this.metadata.configName}'`;
 
         const srvConfigWorkersSql = `
@@ -100,128 +93,94 @@ export default class MssqlConfigWorker extends HiveWorkerBase implements IConfig
         const results = await AwaitHelper.execute(
             Promise.all([
                 this.executeQuery(srvConfigBaseSql),
-                this.executeQuery(srvConfigConstantsSql),
-                this.executeQuery(srvConfigFeaturesSql),
+                this.executeQuery(srvConfigEnvironmentSql),
                 this.executeQuery(srvConfigWorkersSql),
             ])
         );
 
-        const serverSettings: ServerSettings = new ServerSettings();
+        const appSettings: AppSettings = new AppSettings();
 
         this.configId = +results[0][0][0].config_id;
 
         results[1][0].forEach((row) => {
-            switch (row.constant_datatype) {
+            switch (row.environment_datatype) {
                 case "number":
-                    serverSettings.constants[row.constant_key] = Number(row.constant_value);
+                    appSettings.environmentVariables.push({
+                        key: row.environment_key,
+                        value: Number(row.environment_value),
+                        type: EnvironmentVariableType.Number,
+                        isSystem: false,
+                    });
                     break;
                 case "boolean":
-                    serverSettings.constants[row.constant_key] = row.constant_value === "true";
+                    appSettings.environmentVariables.push({
+                        key: row.environment_key,
+                        value: row.environment_value === "true",
+                        type: EnvironmentVariableType.Boolean,
+                        isSystem: false,
+                    });
                     break;
                 default:
-                    serverSettings.constants[row.constant_key] = String(row.constant_value);
+                    appSettings.environmentVariables.push({
+                        key: row.environment_key,
+                        value: String(row.environment_value),
+                        type: EnvironmentVariableType.String,
+                        isSystem: false,
+                    });
                     break;
             }
         });
 
         results[2][0].forEach((row) => {
-            serverSettings.features[row.feature_key] = Boolean(row.feature_value);
-        });
-
-        results[3][0].forEach((row) => {
-            serverSettings.workers.push({
+            appSettings.workers.push({
                 name: row.worker_name,
                 type: row.worker_type,
                 package: row.worker_package,
                 version: row.worker_version,
                 importPath: row.worker_import_path,
-                default: row.worker_is_default,
-                enabled: row.worker_is_enabled,
+                default: row.worker_is_default === "true",
+                enabled: row.worker_is_enabled === "true",
                 metadata: JSON.parse(row.worker_metadata),
             });
         });
 
-        return serverSettings;
+        return appSettings;
     };
 
-    public set = async (settings: ServerSettings): Promise<boolean> => {
-        const currentSettings: ServerSettings = await this.get();
+    public set = async (settings: AppSettings): Promise<boolean> => {
+        const currentSettings: AppSettings = await this.get();
 
         const transaction = new sql.Transaction(this.connectionPool);
 
         await AwaitHelper.execute(transaction.begin());
 
         try {
-            for (let key in settings.constants) {
+            for (let variable of settings.environmentVariables.filter((value) => !value.isSystem)) {
                 const queryBuilder = new StringBuilder();
                 queryBuilder.appendLine(`BEGIN TRY`);
-                queryBuilder.append(
-                    `INSERT oh_srv_config_constants(config_id, constant_key, constant_value, constant_datatype) `
+                queryBuilder.appendLine(
+                    `INSERT oh_srv_config_environment(config_id, environment_key, environment_value, environment_datatype)`
                 );
 
-                switch (typeof settings.constants[key]) {
-                    case "number":
-                    case "bigint":
-                        queryBuilder.appendLine(
-                            `VALUES (${this.configId}, '${key}', ${settings.constants[key]}, 'number')`
-                        );
-                        break;
-                    case "boolean":
-                        queryBuilder.appendLine(
-                            `VALUES (${this.configId}, '${key}', '${settings.constants[key]}', 'boolean')`
-                        );
-                        break;
-                    default:
-                        queryBuilder.appendLine(
-                            `VALUES (${this.configId}, '${key}', '${settings.constants[key]}', 'string')`
-                        );
-                        break;
-                }
+                queryBuilder.appendLine(
+                    `VALUES (${this.configId}, '${variable.key}', '${String(variable.value)}', '${variable.type}')`
+                );
 
                 queryBuilder.appendLine(`END TRY`);
                 queryBuilder.appendLine(`BEGIN CATCH`);
 
-                queryBuilder.append(`UPDATE oh_srv_config_constants SET `);
-
-                switch (typeof settings.constants[key]) {
-                    case "number":
-                    case "bigint":
-                        queryBuilder.appendLine(`constant_value = ${settings.constants[key]}`);
-                        break;
-                    case "boolean":
-                        queryBuilder.appendLine(`constant_value = '${settings.constants[key]}'`);
-                        break;
-                    default:
-                        queryBuilder.appendLine(`constant_value = '${settings.constants[key]}'`);
-                        break;
-                }
-
-                queryBuilder.appendLine(`WHERE config_id = ${this.configId} AND constant_key = '${key}'`);
+                queryBuilder.appendLine(`UPDATE oh_srv_config_environment SET`);
+                queryBuilder.appendLine(`environment_value = '${String(variable.value)}',`);
+                queryBuilder.appendLine(`environment_datatype = '${variable.type}',`);
+                queryBuilder.appendLine(`WHERE config_id = ${this.configId} AND constant_key = '${variable.key}'`);
 
                 queryBuilder.appendLine(`END CATCH`);
 
                 await AwaitHelper.execute(new sql.Request(transaction).query(queryBuilder.outputString()));
 
-                delete currentSettings.constants[key];
-            }
-
-            for (let key in settings.features) {
-                const upsertFeaturesSql = `
-                    BEGIN TRY
-                    INSERT oh_srv_config_features(config_id, feature_key, feature_value)
-                    VALUES (${this.configId}, '${key}', '${settings.features[key]}')
-                    END TRY
-                    BEGIN CATCH
-                    UPDATE oh_srv_config_features
-                    SET feature_value = '${settings.features[key]}'
-                    WHERE config_id = ${this.configId}
-                    AND feature_key = '${key}'
-                    END CATCH
-                `;
-
-                await AwaitHelper.execute(new sql.Request(transaction).query(upsertFeaturesSql));
-
-                delete currentSettings.features[key];
+                currentSettings.environmentVariables = currentSettings.environmentVariables.filter(
+                    (ev: EnvironmentVariable) => ev.key != variable.key
+                );
             }
 
             for (let worker of settings.workers) {
@@ -244,8 +203,8 @@ export default class MssqlConfigWorker extends HiveWorkerBase implements IConfig
                         '${worker.package}', 
                         '${worker.version}', 
                         '${worker.importPath}', 
-                        '${worker.default}', 
-                        '${worker.enabled}', 
+                        '${worker.default ? "true" : "false"}', 
+                        '${worker.enabled ? "true" : "false"}', 
                         '${JSON.stringify(worker.metadata)}')
                     END TRY
                     BEGIN CATCH
@@ -254,8 +213,8 @@ export default class MssqlConfigWorker extends HiveWorkerBase implements IConfig
                     worker_package = '${worker.package}',
                     worker_version = '${worker.version}',
                     worker_import_path = '${worker.importPath}',
-                    worker_is_default = '${worker.default}',
-                    worker_is_enabled = '${worker.enabled}',
+                    worker_is_default = '${worker.default ? "true" : "false"}',
+                    worker_is_enabled = '${worker.enabled ? "true" : "false"}',
                     worker_metadata = '${JSON.stringify(worker.metadata)}'
                     WHERE config_id = ${this.configId}
                     AND worker_name = '${worker.name}'
@@ -268,18 +227,13 @@ export default class MssqlConfigWorker extends HiveWorkerBase implements IConfig
                 currentSettings.workers = filteredWorkers;
             }
 
-            for (let key in currentSettings.constants) {
-                const deleteConstantsQuery: string = `DELETE oh_srv_config_constants where config_id = ${this.configId} AND constant_key = '${key}';`;
+            for (let variable of currentSettings.environmentVariables.filter((value) => !value.isSystem)) {
+                const deleteConstantsQuery: string = `DELETE oh_srv_config_environment where config_id = ${this.configId} AND environment_key = '${variable.key}'`;
                 await AwaitHelper.execute(new sql.Request(transaction).query(deleteConstantsQuery));
             }
 
-            for (let key in currentSettings.features) {
-                const deleteFeaturesQuery: string = `DELETE oh_srv_config_features where config_id = ${this.configId} AND feature_key = '${key}';`;
-                await AwaitHelper.execute(new sql.Request(transaction).query(deleteFeaturesQuery));
-            }
-
             for (let worker of currentSettings.workers) {
-                const deleteWorkerQuery: string = `DELETE oh_srv_config_workers where config_id = ${this.configId} AND worker_name = '${worker.name}';`;
+                const deleteWorkerQuery: string = `DELETE oh_srv_config_workers where config_id = ${this.configId} AND worker_name = '${worker.name}'`;
                 await AwaitHelper.execute(new sql.Request(transaction).query(deleteWorkerQuery));
             }
 

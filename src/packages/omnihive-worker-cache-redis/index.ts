@@ -1,4 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ICacheWorker } from "@withonevision/omnihive-core/interfaces/ICacheWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -36,7 +37,7 @@ export default class RedisCacheWorker extends HiveWorkerBase implements ICacheWo
     public get = async (key: string): Promise<string | undefined> => {
         const value: string | null = await AwaitHelper.execute(this.redis.get(key));
 
-        if (!value) {
+        if (IsHelper.isNullOrUndefined(value)) {
             return undefined;
         }
 

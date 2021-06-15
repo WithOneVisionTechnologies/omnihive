@@ -1,7 +1,7 @@
-import { ServerSettings } from "../models/ServerSettings";
+import { AppSettings } from "../models/AppSettings";
 import { IHiveWorker } from "./IHiveWorker";
 
 export interface IConfigWorker extends IHiveWorker {
-    get: () => Promise<ServerSettings>;
-    set: (settings: ServerSettings) => Promise<boolean>;
+    get: () => Promise<AppSettings>;
+    set: (settings: AppSettings) => Promise<boolean>;
 }

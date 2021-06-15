@@ -1,4 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IPubSubServerWorker } from "@withonevision/omnihive-core/interfaces/IPubSubServerWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -20,10 +21,11 @@ export default class SocketIoPubSubServerWorker extends HiveWorkerBase implement
 
     public async init(config: HiveWorker): Promise<void> {
         await AwaitHelper.execute(super.init(config));
-        const metadata: SocketIoPubSubServerWorkerMetadata = this.checkObjectStructure<SocketIoPubSubServerWorkerMetadata>(
-            SocketIoPubSubServerWorkerMetadata,
-            this.config.metadata
-        );
+        const metadata: SocketIoPubSubServerWorkerMetadata =
+            this.checkObjectStructure<SocketIoPubSubServerWorkerMetadata>(
+                SocketIoPubSubServerWorkerMetadata,
+                this.config.metadata
+            );
 
         this.ioServer = new socketio.Server();
         this.ioServer.listen(metadata.port);
@@ -45,7 +47,7 @@ export default class SocketIoPubSubServerWorker extends HiveWorkerBase implement
 
             if (!this.listeners.some((listener: PubSubListener) => listener.eventName === eventName)) {
                 this.ioServer.addListener(eventName, (packet: { room: string; data: any }) => {
-                    if (packet.room === channelName && callback && typeof callback === "function") {
+                    if (packet.room === channelName && callback && IsHelper.isFunction(callback)) {
                         callback(packet.data);
                     }
                 });
@@ -83,7 +85,7 @@ export default class SocketIoPubSubServerWorker extends HiveWorkerBase implement
                         listener.channelName == channelName && listener.eventName !== eventName
                 );
 
-                if (listener && listener.callback) {
+                if (!IsHelper.isNullOrUndefined(listener) && !IsHelper.isNullOrUndefined(listener.callback)) {
                     this.ioServer.removeListener(eventName, listener.callback);
                 }
             }

@@ -3,7 +3,6 @@
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
 import { IDatabaseWorker } from "@withonevision/omnihive-core/interfaces/IDatabaseWorker";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
@@ -16,6 +15,7 @@ import { serializeError } from "serialize-error";
 import fse from "fs-extra";
 import path from "path";
 import { HiveWorkerMetadataDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataDatabase";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export class SqliteWorkerMetadata extends HiveWorkerMetadataDatabase {
     public filename: string = "";
@@ -65,7 +65,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
     }
 
     public executeQuery = async (query: string, disableLog?: boolean): Promise<any[][]> => {
-        if (!disableLog) {
+        if (IsHelper.isNullOrUndefined(disableLog) || !disableLog) {
             const logWorker: ILogWorker | undefined = this.getWorker<ILogWorker | undefined>(HiveWorkerType.Log);
             logWorker?.write(OmniHiveLogLevel.Info, query);
         }
@@ -99,8 +99,8 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
             const tableFilePath = global.omnihive.getFilePath(this.metadata.getSchemaSqlFile);
 
             if (
-                this.metadata.getSchemaSqlFile &&
-                !StringHelper.isNullOrWhiteSpace(this.metadata.getSchemaSqlFile) &&
+                !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
+                !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile) &&
                 fse.existsSync(tableFilePath)
             ) {
                 tableResult = await AwaitHelper.execute(
@@ -108,8 +108,8 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
                 );
             } else {
                 if (
-                    this.metadata.getSchemaSqlFile &&
-                    !StringHelper.isNullOrWhiteSpace(this.metadata.getSchemaSqlFile)
+                    !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
+                    !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile)
                 ) {
                     logWorker?.write(OmniHiveLogLevel.Warn, "Provided Schema SQL File is not found.");
                 }

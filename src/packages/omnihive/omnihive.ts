@@ -1,15 +1,21 @@
 #!/usr/bin/env node
 /// <reference path="../../types/globals.omnihive.d.ts" />
 
-import yargs from "yargs";
-import { TaskRunnerService } from "./services/TaskRunnerService";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
-import { CommandLineArgs } from "./models/CommandLineArgs";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
+import chalk from "chalk";
 import exitHook from "exit-hook";
-import { v4 as uuidv4 } from "uuid";
-import ipc from "node-ipc";
+import figlet from "figlet";
 import forever from "forever-monitor";
+import ipc from "node-ipc";
+import { v4 as uuidv4 } from "uuid";
+import yargs from "yargs";
+import { ServerRunnerType } from "./enums/ServerRunnerType";
+import { CommandLineArgs } from "./models/CommandLineArgs";
+import { TaskRunnerService } from "./services/TaskRunnerService";
+import dotenv from "dotenv";
+import fse from "fs-extra";
+import path from "path";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 // Setup IPC
 
@@ -69,6 +75,32 @@ const init = async () => {
         taskRunnerArgs: (args.args as string) ?? "",
     };
 
+    // Load environment file if present
+    if (
+        !IsHelper.isNullOrUndefined(commandLineArgs.environmentFile) &&
+        !IsHelper.isEmptyStringOrWhitespace(commandLineArgs.environmentFile) &&
+        fse.existsSync(commandLineArgs.environmentFile)
+    ) {
+        dotenv.config({ path: commandLineArgs.environmentFile });
+    }
+
+    if (
+        !IsHelper.isNullOrUndefined(commandLineArgs.environmentFile) &&
+        !IsHelper.isEmptyStringOrWhitespace(commandLineArgs.environmentFile) &&
+        commandLineArgs.environmentFile &&
+        !fse.existsSync(commandLineArgs.environmentFile)
+    ) {
+        if (fse.existsSync(path.join(global.omnihive.ohDirName, commandLineArgs.environmentFile))) {
+            dotenv.config({
+                path: path.join(global.omnihive.ohDirName, commandLineArgs.environmentFile),
+            });
+        }
+    }
+
+    // Print header
+    console.log(chalk.yellow(figlet.textSync("OMNIHIVE")));
+    console.log();
+
     // Check for task runner
     if (args._[0] === "taskRunner") {
         const taskRunnerService: TaskRunnerService = new TaskRunnerService();
@@ -90,7 +122,7 @@ const init = async () => {
 
     // Process termination (mostly from nodemon)
     process.on("SIGUSR2", () => {
-        if (child) {
+        if (!IsHelper.isNullOrUndefined(child)) {
             child.kill(true);
         }
         process.kill(process.pid, "SIGHUP");
@@ -99,13 +131,27 @@ const init = async () => {
 
 // Child process spawner
 const createServerChild = async (commandLineArgs: CommandLineArgs) => {
+    let serverRunnerType: ServerRunnerType = ServerRunnerType.Production;
+
+    if (
+        !IsHelper.isNullOrUndefined(process.env.OH_PRODUCTION_MODE) &&
+        IsHelper.isBoolean(process.env.OH_PRODUCTION_MODE) &&
+        process.env.OH_PRODUCTION_MODE === "false"
+    ) {
+        serverRunnerType = ServerRunnerType.Debug;
+    }
+
     child = new forever.Monitor(
         [
-            `${process.env.NODE_ENV === "production" ? `node` : `ts-node`}`,
-            `serverRunner.${process.env.NODE_ENV === "production" ? `js` : `ts`}`,
+            `${
+                serverRunnerType === ServerRunnerType.Production
+                    ? `node`
+                    : `node -r ts-node/register --inspect --inspect-port=0`
+            }`,
+            `serverRunner.${serverRunnerType === ServerRunnerType.Production ? `js` : `ts`}`,
             `${ipcId}`,
             `${
-                !StringHelper.isNullOrWhiteSpace(commandLineArgs.environmentFile)
+                !IsHelper.isEmptyStringOrWhitespace(commandLineArgs.environmentFile)
                     ? `${commandLineArgs.environmentFile}`
                     : ``
             }`,
@@ -114,7 +160,7 @@ const createServerChild = async (commandLineArgs: CommandLineArgs) => {
     );
 
     child.on("exit:code", (code: number) => {
-        if (!child || code === null) {
+        if (IsHelper.isNullOrUndefined(child) || IsHelper.isNull(code)) {
             return;
         }
 
@@ -127,7 +173,7 @@ const createServerChild = async (commandLineArgs: CommandLineArgs) => {
 
 // Kill child if parent dies
 exitHook(() => {
-    if (child) {
+    if (!IsHelper.isNullOrUndefined(child)) {
         child.kill(true);
     }
 });

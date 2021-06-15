@@ -1,6 +1,7 @@
 /// <reference path="../../types/globals.omnihive.d.ts" />
 
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IRestEndpointWorker } from "@withonevision/omnihive-core/interfaces/IRestEndpointWorker";
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -22,7 +23,7 @@ export default class SystemStatusWorker extends HiveWorkerBase implements IRestE
     public execute = async (headers: any, _url: string, body: any): Promise<RestEndpointExecuteResponse> => {
         const tokenWorker: ITokenWorker | undefined = this.getWorker<ITokenWorker>(HiveWorkerType.Token);
 
-        if (!tokenWorker) {
+        if (IsHelper.isNullOrUndefined(tokenWorker)) {
             throw new Error("Token Worker cannot be found");
         }
 
@@ -109,11 +110,11 @@ export default class SystemStatusWorker extends HiveWorkerBase implements IRestE
     };
 
     private checkRequest = (headers: any | undefined, body: any | undefined) => {
-        if (!body || !headers) {
+        if (IsHelper.isNullOrUndefined(body) || IsHelper.isNullOrUndefined(headers)) {
             throw new Error("Request Denied");
         }
 
-        if (!headers["x-omnihive-access"]) {
+        if (IsHelper.isNullOrUndefined(headers["x-omnihive-access"])) {
             throw new Error("[ohAccessError] Token Invalid");
         }
 
@@ -126,11 +127,11 @@ export default class SystemStatusWorker extends HiveWorkerBase implements IRestE
             body
         );
 
-        if (!bodyStructured.adminPassword || bodyStructured.adminPassword === "") {
+        if (IsHelper.isNullOrUndefinedOrEmptyStringOrWhitespace(bodyStructured.adminPassword)) {
             throw new Error(`Request Denied`);
         }
 
-        if (bodyStructured.adminPassword !== global.omnihive.bootLoaderSettings.baseSettings.adminPassword) {
+        if (bodyStructured.adminPassword !== global.omnihive.getEnvironmentVariable<string>("OH_ADMIN_PASSWORD")) {
             throw new Error(`Request Denied`);
         }
     };

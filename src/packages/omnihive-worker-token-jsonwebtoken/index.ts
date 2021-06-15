@@ -1,4 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -57,14 +58,14 @@ export default class JsonWebTokenWorker extends HiveWorkerBase implements IToken
     };
 
     public verify = async (accessToken: string): Promise<boolean> => {
-        if (this.config.metadata.verifyOn === false) {
+        if (!this.config.metadata.verifyOn) {
             return true;
         }
 
         try {
             const decoded = jwt.verify(accessToken, this.metadata.tokenSecret, { audience: this.metadata.audience });
 
-            if (decoded) {
+            if (!IsHelper.isNullOrUndefined(decoded)) {
                 return true;
             } else {
                 return false;

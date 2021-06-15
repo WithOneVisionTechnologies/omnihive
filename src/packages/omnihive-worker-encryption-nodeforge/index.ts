@@ -1,4 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IEncryptionWorker } from "@withonevision/omnihive-core/interfaces/IEncryptionWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -43,7 +44,11 @@ export default class NodeForgeEncryptionWorker extends HiveWorkerBase implements
         let decipher: forge.cipher.BlockCipher;
 
         // Validate message format
-        if (!message || message.length <= 0 || message.indexOf(":") < 0) {
+        if (
+            IsHelper.isNullOrUndefined(message) ||
+            !IsHelper.isEmptyStringOrWhitespace(message) ||
+            message.indexOf(":") < 0
+        ) {
             throw new Error("Secure message data is not in the correct format");
         }
 
@@ -64,7 +69,7 @@ export default class NodeForgeEncryptionWorker extends HiveWorkerBase implements
                 data += String.fromCharCode(uint8[i]);
             }
 
-            if (!data) {
+            if (IsHelper.isNullOrUndefined(data)) {
                 throw new Error("Secure message data packet not in the correct format");
             }
         } catch (e) {

@@ -1,0 +1,38 @@
+{
+    "environmentVariables": [
+        {
+            "key": "OH_CORE_GRAPH_INTROSPECTION",
+            "value": "false",
+            "type": "boolean"
+        },
+        {
+            "key": "OH_CORE_GRAPH_PLAYGROUND",
+            "value": "true",
+            "type": "boolean"
+        },
+        {
+            "key": "OH_CORE_GRAPH_TRACING",
+            "value": "false",
+            "type": "boolean"
+        },
+        {
+            "key": "OH_CORE_SWAGGER",
+            "value": "true",
+            "type": "boolean"
+        }
+    ],
+    "workers": [
+        {
+            "name": "XXXX",
+            "type": "XXXX",
+            "package": "XXXX",
+            "version": "XXXX",
+            "importPath": "XXXX",
+            "default": false,
+            "enabled": true,
+            "metadata": {
+                "yourMetadata": "XXXX"
+            }
+        }
+    ]
+}

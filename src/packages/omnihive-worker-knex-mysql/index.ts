@@ -4,7 +4,6 @@ import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerTyp
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
 import { IDatabaseWorker } from "@withonevision/omnihive-core/interfaces/IDatabaseWorker";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
@@ -20,6 +19,7 @@ import path from "path";
 import mysql from "mysql2";
 import { Pool } from "mysql2/promise";
 import orderBy from "lodash.orderby";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export default class MySqlDatabaseWorker extends HiveWorkerBase implements IDatabaseWorker {
     public connection!: Knex;
@@ -48,7 +48,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
             };
 
             if (this.metadata.requireSsl) {
-                if (StringHelper.isNullOrWhiteSpace(this.metadata.sslCertPath)) {
+                if (IsHelper.isEmptyStringOrWhitespace(this.metadata.sslCertPath)) {
                     this.sqlConfig.ssl = this.metadata.requireSsl;
                 } else {
                     this.sqlConfig.ssl = {
@@ -78,7 +78,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
     }
 
     public executeQuery = async (query: string, disableLog?: boolean): Promise<any[][]> => {
-        if (!disableLog) {
+        if (IsHelper.isNullOrUndefined(disableLog) || !disableLog) {
             const logWorker: ILogWorker | undefined = this.getWorker<ILogWorker | undefined>(HiveWorkerType.Log);
             logWorker?.write(OmniHiveLogLevel.Info, query);
         }
@@ -118,7 +118,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
                     (arg) => arg.name === schema.parameterName
                 );
 
-                if (arg) {
+                if (!IsHelper.isNullOrUndefined(arg)) {
                     builder.append(`${arg.isString ? `'` : ""}${arg.value}${arg.isString ? `'` : ""}`);
                 }
 
@@ -149,8 +149,8 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
             const tableFilePath = global.omnihive.getFilePath(this.metadata.getSchemaSqlFile);
 
             if (
-                this.metadata.getSchemaSqlFile &&
-                !StringHelper.isNullOrWhiteSpace(this.metadata.getSchemaSqlFile) &&
+                !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
+                !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile) &&
                 fse.existsSync(tableFilePath)
             ) {
                 tableResult = await AwaitHelper.execute(
@@ -158,8 +158,8 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
                 );
             } else {
                 if (
-                    this.metadata.getSchemaSqlFile &&
-                    !StringHelper.isNullOrWhiteSpace(this.metadata.getSchemaSqlFile)
+                    !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
+                    !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile)
                 ) {
                     logWorker?.write(OmniHiveLogLevel.Warn, "Provided Schema SQL File is not found.");
                 }
@@ -179,15 +179,15 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
             const procFilePath = global.omnihive.getFilePath(this.metadata.getProcFunctionSqlFile);
 
             if (
-                this.metadata.getProcFunctionSqlFile &&
-                !StringHelper.isNullOrWhiteSpace(this.metadata.getProcFunctionSqlFile) &&
+                !IsHelper.isNullOrUndefined(this.metadata.getProcFunctionSqlFile) &&
+                !IsHelper.isEmptyStringOrWhitespace(this.metadata.getProcFunctionSqlFile) &&
                 fse.existsSync(procFilePath)
             ) {
                 procResult = await AwaitHelper.execute(this.executeQuery(fse.readFileSync(procFilePath, "utf8"), true));
             } else {
                 if (
-                    this.metadata.getProcFunctionSqlFile &&
-                    !StringHelper.isNullOrWhiteSpace(this.metadata.getProcFunctionSqlFile)
+                    !IsHelper.isNullOrUndefined(this.metadata.getProcFunctionSqlFile) &&
+                    !IsHelper.isEmptyStringOrWhitespace(this.metadata.getProcFunctionSqlFile)
                 ) {
                     logWorker?.write(OmniHiveLogLevel.Warn, "Provided Proc SQL File is not found.");
                 }

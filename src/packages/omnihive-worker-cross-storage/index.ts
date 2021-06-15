@@ -1,10 +1,12 @@
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IEncryptionWorker } from "@withonevision/omnihive-core/interfaces/IEncryptionWorker";
 import { IStorageWorker } from "@withonevision/omnihive-core/interfaces/IStorageWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { CrossStorageClient, CrossStorageClientOptions } from "cross-storage";
+
 export class CrossStorageStorageWorkerMetadata {
     public hubLocation: string = "";
     public keyPrefix: string = "";
@@ -32,13 +34,13 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
 
     public exists = (key: string): Promise<boolean> => {
         const promise: Promise<boolean> = new Promise<boolean>((resolve, _reject) => {
-            if (!this.storageClient) {
+            if (IsHelper.isNullOrUndefined(this.storageClient)) {
                 throw new Error("Client store has not been initialized.  Please call initialize first");
             }
 
             const encryptionWorker = this.getWorker<IEncryptionWorker | undefined>(HiveWorkerType.Encryption);
 
-            if (!encryptionWorker) {
+            if (IsHelper.isNullOrUndefined(encryptionWorker)) {
                 throw new Error(
                     "Encryption Worker Not Defined.  Cross-Storage Will Not Function Without Encryption Worker."
                 );
@@ -47,7 +49,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
             this.storageClient
                 .onConnect()
                 .then(() => {
-                    if (!this.storageClient) {
+                    if (IsHelper.isNullOrUndefined(this.storageClient)) {
                         throw new Error("Client store has not been initialized.  Please call initialize first");
                     }
 
@@ -66,13 +68,13 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
 
     public get = <T extends unknown>(key: string): Promise<T | undefined> => {
         const promise: Promise<T | undefined> = new Promise<T | undefined>((resolve, _reject) => {
-            if (!this.storageClient) {
+            if (IsHelper.isNullOrUndefined(this.storageClient)) {
                 throw new Error("Client store has not been initialized.  Please call initialize first");
             }
 
             const encryptionWorker = this.getWorker<IEncryptionWorker | undefined>(HiveWorkerType.Encryption);
 
-            if (!encryptionWorker) {
+            if (IsHelper.isNullOrUndefined(encryptionWorker)) {
                 throw new Error(
                     "Encryption Worker Not Defined.  Cross-Storage Will Not Function Without Encryption Worker."
                 );
@@ -81,7 +83,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
             this.storageClient
                 .onConnect()
                 .then(() => {
-                    if (!this.storageClient) {
+                    if (IsHelper.isNullOrUndefined(this.storageClient)) {
                         throw new Error("Client store has not been initialized.  Please call initialize first");
                     }
 
@@ -106,14 +108,14 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
 
     public remove = (key: string): Promise<boolean> => {
         const promise: Promise<boolean> = new Promise<boolean>((resolve, _reject) => {
-            if (!this.storageClient) {
+            if (IsHelper.isNullOrUndefined(this.storageClient)) {
                 throw new Error("Client store has not been initialized.  Please call initialize first");
             }
 
             this.storageClient
                 .onConnect()
                 .then(() => {
-                    if (!this.storageClient) {
+                    if (IsHelper.isNullOrUndefined(this.storageClient)) {
                         throw new Error("Client store has not been initialized.  Please call initialize first");
                     }
 
@@ -132,13 +134,13 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
 
     public set = <T extends unknown>(key: string, model: T): Promise<boolean> => {
         const promise: Promise<boolean> = new Promise<boolean>((resolve, _reject) => {
-            if (!this.storageClient) {
+            if (IsHelper.isNullOrUndefined(this.storageClient)) {
                 throw new Error("Client store has not been initialized.  Please call initialize first");
             }
 
             const encryptionWorker = this.getWorker<IEncryptionWorker | undefined>(HiveWorkerType.Encryption);
 
-            if (!encryptionWorker) {
+            if (IsHelper.isNullOrUndefined(encryptionWorker)) {
                 throw new Error(
                     "Encryption Worker Not Defined.  Cross-Storage Will Not Function Without Encryption Worker."
                 );
@@ -147,7 +149,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
             this.storageClient
                 .onConnect()
                 .then(() => {
-                    if (!this.storageClient) {
+                    if (IsHelper.isNullOrUndefined(this.storageClient)) {
                         throw new Error("Client store has not been initialized.  Please call initialize first");
                     }
 
@@ -155,7 +157,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
                     const json: string = JSON.stringify(model);
                     let encrypted: string = "";
 
-                    if (json !== "") {
+                    if (!IsHelper.isNullOrUndefined(json) && IsHelper.isEmptyStringOrWhitespace(json)) {
                         encrypted = encryptionWorker.symmetricEncrypt(json);
                     }
 

@@ -1,12 +1,13 @@
 import { GraphQLScalarType } from "graphql";
 import { Kind } from "graphql/language";
+import { IsHelper } from "../helpers/IsHelper";
 
 function identity(value: any) {
     return value;
 }
 
 function ensureObject(value: any) {
-    if (!value || typeof value !== "object") {
+    if (IsHelper.isNullOrUndefined(value) || !IsHelper.isObject(value)) {
         throw new Error(`JSONObject cannot represent non-object value: ${value}`);
     }
 
@@ -16,7 +17,7 @@ function ensureObject(value: any) {
 function parseObject(ast: any, variables: any) {
     const value = Object.create(null);
 
-    if (Array.isArray(ast)) {
+    if (IsHelper.isArray(ast)) {
         ast.forEach((element) => {
             value[element.name] = parseObject(element, variables);
         });

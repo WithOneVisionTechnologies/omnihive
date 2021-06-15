@@ -42,7 +42,10 @@ yarn-error.log*
 !.versionrc.js
 
 #settings
-/settings
+/settings/**
+!/settings/default_omnihive_server_config.json
+!/settings/default_omnihive_server_config.yaml
+!/settings/default_omnihive.env
 
 #custom types
 !**/globals.omnihive.d.ts

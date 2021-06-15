@@ -1,15 +1,19 @@
 # Ignore Miscellaneous
 nodemon.*.json
+**/.DS_Store
 
-# Make sure templates are included
-!templates/
+# Make sure all web is included
+!next-env.d.ts
+!next.config.js
+!postcss.config.js
+!tailwind.config.js
+!components/
+!pages/
+!public/
+!.next/
 
 # TS
 !*.d.ts
 !*.d.ts.map
 !*.js.map
 !*.map
-
-#Web
-!app/
-app/**/.DS_Store

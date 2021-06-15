@@ -1,4 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IPubSubClientWorker } from "@withonevision/omnihive-core/interfaces/IPubSubClientWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -51,7 +52,7 @@ export default class SocketIoPubSubClientWorker extends HiveWorkerBase implement
 
             if (!this.listeners.some((listener: PubSubListener) => listener.eventName === eventName)) {
                 this.ioClient.on(eventName, (packet: { room: string; data: any }) => {
-                    if (packet.room === channelName && callback && typeof callback === "function") {
+                    if (packet.room === channelName && callback && IsHelper.isFunction(callback)) {
                         callback(packet.data);
                     }
                 });
@@ -122,7 +123,7 @@ export default class SocketIoPubSubClientWorker extends HiveWorkerBase implement
     };
 
     public disconnect = (): void => {
-        if (!this.ioClient) {
+        if (IsHelper.isNullOrUndefined(this.ioClient)) {
             throw new Error("Socket.IO is not instantiated.");
         }
 
@@ -151,7 +152,7 @@ export default class SocketIoPubSubClientWorker extends HiveWorkerBase implement
     };
 
     public joinChannel = (channelName: string): void => {
-        if (!this.ioClient) {
+        if (IsHelper.isNullOrUndefined(this.ioClient)) {
             throw new Error("Socket.IO is not instantiated.");
         }
 
@@ -168,7 +169,7 @@ export default class SocketIoPubSubClientWorker extends HiveWorkerBase implement
     };
 
     public leaveChannel = (channelName: string): void => {
-        if (!this.ioClient) {
+        if (IsHelper.isNullOrUndefined(this.ioClient)) {
             throw new Error("Socket.IO is not instantiated.");
         }
 

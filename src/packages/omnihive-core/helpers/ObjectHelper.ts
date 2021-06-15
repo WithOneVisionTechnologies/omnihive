@@ -1,8 +1,10 @@
+import { IsHelper } from "./IsHelper";
+
 export class ObjectHelper {
     public static create = <T extends unknown>(type: { new (): T }, model: any | null): T => {
         const generic: T = new type();
 
-        if (!model) {
+        if (IsHelper.isNullOrUndefined(model)) {
             return generic;
         }
 
@@ -19,7 +21,7 @@ export class ObjectHelper {
     public static createStrict = <T extends unknown>(type: { new (): T }, model: any | null): T => {
         const generic: T = new type();
 
-        if (!model) {
+        if (IsHelper.isNullOrUndefined(model)) {
             throw new Error(`Model cannot be null or undefined in strict mode.`);
         }
 

@@ -1,0 +1,25 @@
+{
+    "environmentVariables": [
+        {
+            "key": "OH_CORE_GRAPH_INTROSPECTION",
+            "value": "false",
+            "type": "boolean"
+        },
+        {
+            "key": "OH_CORE_GRAPH_PLAYGROUND",
+            "value": "true",
+            "type": "boolean"
+        },
+        {
+            "key": "OH_CORE_GRAPH_TRACING",
+            "value": "false",
+            "type": "boolean"
+        },
+        {
+            "key": "OH_CORE_SWAGGER",
+            "value": "true",
+            "type": "boolean"
+        }
+    ],
+    "workers": []
+}

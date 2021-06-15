@@ -2,14 +2,17 @@ import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
-import { ServerSettings } from "@withonevision/omnihive-core/models/ServerSettings";
 import fse from "fs-extra";
 import { serializeError } from "serialize-error";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
 import knex, { Knex } from "knex";
 import mysql from "mysql2";
 import { Pool } from "mysql2/promise";
 import { HiveWorkerMetadataConfigDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataConfigDatabase";
+import { EnvironmentVariableType } from "@withonevision/omnihive-core/enums/EnvironmentVariableType";
+import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
+import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
+import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export default class MySqlConfigWorker extends HiveWorkerBase implements IConfigWorker {
     public connection!: Knex;
@@ -40,7 +43,7 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
             };
 
             if (this.metadata.requireSsl) {
-                if (StringHelper.isNullOrWhiteSpace(this.metadata.sslCertPath)) {
+                if (IsHelper.isEmptyStringOrWhitespace(this.metadata.sslCertPath)) {
                     this.sqlConfig.ssl = this.metadata.requireSsl;
                 } else {
                     this.sqlConfig.ssl = {
@@ -69,30 +72,21 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
         }
     }
 
-    public get = async (): Promise<ServerSettings> => {
+    public get = async (): Promise<AppSettings> => {
         const srvConfigBaseSql = `
             SELECT   config_id
                     ,config_name
             FROM oh_srv_config_base 
             WHERE config_name = '${this.metadata.configName}'`;
 
-        const srvConfigConstantsSql = `
-            SELECT   c.config_id
-                    ,c.constant_key
-                    ,c.constant_value
-                    ,c.constant_datatype
-            FROM oh_srv_config_constants c
+        const srvConfigEnvironmentSql = `
+            SELECT   e.config_id
+                    ,e.environment_key
+                    ,e.environment_value
+                    ,e.environment_datatype
+            FROM oh_srv_config_environment e
                 INNER JOIN oh_srv_config_base b
-                    on c.config_id = b.config_id
-            WHERE b.config_name = '${this.metadata.configName}'`;
-
-        const srvConfigFeaturesSql = `
-            SELECT   f.config_id
-                    ,f.feature_key
-                    ,f.feature_value
-            FROM oh_srv_config_features f
-                INNER JOIN oh_srv_config_base b
-                    on f.config_id = b.config_id
+                    on e.config_id = b.config_id
             WHERE b.config_name = '${this.metadata.configName}'`;
 
         const srvConfigWorkersSql = `
@@ -113,36 +107,46 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
         const results = await AwaitHelper.execute(
             Promise.all([
                 this.executeQuery(srvConfigBaseSql),
-                this.executeQuery(srvConfigConstantsSql),
-                this.executeQuery(srvConfigFeaturesSql),
+                this.executeQuery(srvConfigEnvironmentSql),
                 this.executeQuery(srvConfigWorkersSql),
             ])
         );
 
-        const serverSettings: ServerSettings = new ServerSettings();
+        const appSettings: AppSettings = new AppSettings();
 
         this.configId = +results[0][0][0].config_id;
 
         results[1][0].forEach((row) => {
-            switch (row.constant_datatype) {
+            switch (row.environment_datatype) {
                 case "number":
-                    serverSettings.constants[row.constant_key] = Number(row.constant_value);
+                    appSettings.environmentVariables.push({
+                        key: row.environment_key,
+                        value: Number(row.environment_value),
+                        type: EnvironmentVariableType.Number,
+                        isSystem: false,
+                    });
                     break;
                 case "boolean":
-                    serverSettings.constants[row.constant_key] = row.constant_value === 1;
+                    appSettings.environmentVariables.push({
+                        key: row.environment_key,
+                        value: row.environment_value === "true",
+                        type: EnvironmentVariableType.Boolean,
+                        isSystem: false,
+                    });
                     break;
                 default:
-                    serverSettings.constants[row.constant_key] = String(row.constant_value);
+                    appSettings.environmentVariables.push({
+                        key: row.environment_key,
+                        value: String(row.environment_value),
+                        type: EnvironmentVariableType.String,
+                        isSystem: false,
+                    });
                     break;
             }
         });
 
         results[2][0].forEach((row) => {
-            serverSettings.features[row.feature_key] = Boolean(row.feature_value);
-        });
-
-        results[3][0].forEach((row) => {
-            serverSettings.workers.push({
+            appSettings.workers.push({
                 name: row.worker_name,
                 type: row.worker_type,
                 package: row.worker_package,
@@ -154,52 +158,38 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
             });
         });
 
-        return serverSettings;
+        return appSettings;
     };
 
-    public set = async (settings: ServerSettings): Promise<boolean> => {
-        const currentSettings: ServerSettings = await this.get();
+    public set = async (settings: AppSettings): Promise<boolean> => {
+        const currentSettings: AppSettings = await this.get();
 
         const connection = await AwaitHelper.execute(this.connectionPool.getConnection());
 
         await AwaitHelper.execute(connection.beginTransaction());
 
         try {
-            for (let key in settings.constants) {
-                let upsertConstantsSql = `INSERT INTO oh_srv_config_constants(config_id, constant_key, constant_value, constant_datatype)`;
+            for (let variable of settings.environmentVariables.filter((value) => !value.isSystem)) {
+                const queryBuilder = new StringBuilder();
+                queryBuilder.appendLine(
+                    `INSERT oh_srv_config_environment(config_id, environment_key, environment_value, environment_datatype)`
+                );
 
-                switch (typeof settings.constants[key]) {
-                    case "number":
-                    case "bigint":
-                        upsertConstantsSql = `${upsertConstantsSql} VALUES (${this.configId}, '${key}', ${settings.constants[key]}, 'number')`;
-                        break;
-                    case "boolean":
-                        upsertConstantsSql = `${upsertConstantsSql} VALUES (${this.configId}, '${key}', ${
-                            settings.constants[key] === true ? 1 : 0
-                        }, 'boolean')`;
-                        break;
-                    default:
-                        upsertConstantsSql = `${upsertConstantsSql} VALUES (${this.configId}, '${key}', '${settings.constants[key]}', 'string')`;
-                        break;
-                }
+                queryBuilder.appendLine(
+                    `VALUES (${this.configId}, '${variable.key}', '${String(variable.value)}', '${variable.type}')`
+                );
 
-                upsertConstantsSql = `${upsertConstantsSql} ON DUPLICATE KEY UPDATE constant_value = VALUES(constant_value)`;
+                queryBuilder.appendLine(
+                    `ON DUPLICATE KEY UPDATE 
+                        envrionment_value = VALUES(envrionment_value),
+                        environment_datatype = VALUES(environment_datatype);`
+                );
 
-                await AwaitHelper.execute(connection.query(upsertConstantsSql));
+                await AwaitHelper.execute(connection.query(queryBuilder.outputString()));
 
-                delete currentSettings.constants[key];
-            }
-
-            for (let key in settings.features) {
-                const upsertFeaturesSql = `
-                    INSERT INTO oh_srv_config_features(config_id, feature_key, feature_value)
-                    VALUES (${this.configId}, '${key}', ${settings.features[key] === true ? 1 : 0})
-                    ON DUPLICATE KEY UPDATE feature_value = VALUES(feature_value);
-                `;
-
-                await AwaitHelper.execute(connection.query(upsertFeaturesSql));
-
-                delete currentSettings.features[key];
+                currentSettings.environmentVariables = currentSettings.environmentVariables.filter(
+                    (ev: EnvironmentVariable) => ev.key != variable.key
+                );
             }
 
             for (let worker of settings.workers) {
@@ -221,8 +211,8 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
                         '${worker.package}', 
                         '${worker.version}', 
                         '${worker.importPath}', 
-                        '${worker.default === true ? 1 : 0}', 
-                        '${worker.enabled === true ? 1 : 0}', 
+                        '${worker.default ? 1 : 0}', 
+                        '${worker.enabled ? 1 : 0}', 
                         '${JSON.stringify(worker.metadata)}')
                     ON DUPLICATE KEY UPDATE 
                         worker_type = VALUES(worker_type), 
@@ -240,14 +230,9 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
                 currentSettings.workers = filteredWorkers;
             }
 
-            for (let key in currentSettings.constants) {
-                const deleteConstantsQuery: string = `DELETE oh_srv_config_constants where config_id = ${this.configId} AND constant_key = '${key}';`;
+            for (let variable of currentSettings.environmentVariables.filter((value) => !value.isSystem)) {
+                const deleteConstantsQuery: string = `DELETE oh_srv_config_environment where config_id = ${this.configId} AND environment_key = '${variable.key}';`;
                 await AwaitHelper.execute(connection.query(deleteConstantsQuery));
-            }
-
-            for (let key in currentSettings.features) {
-                const deleteFeaturesQuery: string = `DELETE oh_srv_config_features where config_id = ${this.configId} AND feature_key = '${key}';`;
-                await AwaitHelper.execute(connection.query(deleteFeaturesQuery));
             }
 
             for (let worker of currentSettings.workers) {
@@ -257,7 +242,7 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
 
             await AwaitHelper.execute(connection.commit());
         } catch (err) {
-            if (connection) {
+            if (!IsHelper.isNullOrUndefined(connection)) {
                 await AwaitHelper.execute(connection.rollback());
             }
             throw new Error("MySQL Config Save Error => " + JSON.stringify(serializeError(err)));
@@ -274,7 +259,7 @@ export default class MySqlConfigWorker extends HiveWorkerBase implements IConfig
         const returnResults: any[][] = [];
         let currentResultIndex: number = 0;
 
-        if (!Array.isArray(result[0][0])) {
+        if (!IsHelper.isArray(result[0][0])) {
             returnResults[currentResultIndex] = result[0];
             return returnResults;
         }

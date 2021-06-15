@@ -2,6 +2,7 @@ import { ApiResponse, Client } from "@elastic/elasticsearch";
 import { Context } from "@elastic/elasticsearch/lib/Transport";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -43,7 +44,7 @@ export default class ElasticLogWorker extends HiveWorkerBase implements ILogWork
         this.elasticClient.indices
             .exists({ index: metadata.logIndex })
             .then((indexExists: ApiResponse<boolean, Context>) => {
-                if (!indexExists.body) {
+                if (IsHelper.isNullOrUndefined(indexExists.body)) {
                     this.elasticClient.indices.create({ index: metadata.logIndex });
                 }
             });

@@ -1,4 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IDateWorker } from "@withonevision/omnihive-core/interfaces/IDateWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -29,7 +30,7 @@ export default class DayJsDateWorker extends HiveWorkerBase implements IDateWork
         try {
             let fromDate: dayjs.Dayjs;
 
-            if (!fromTimezone || fromTimezone === "") {
+            if (IsHelper.isNullOrUndefined(fromTimezone) || IsHelper.isEmptyStringOrWhitespace(fromTimezone)) {
                 fromDate = dayjs(date);
             } else {
                 fromDate = dayjs(date).tz(fromTimezone);
@@ -44,7 +45,7 @@ export default class DayJsDateWorker extends HiveWorkerBase implements IDateWork
     };
 
     public getFormattedDateString = (date: Date, format?: string): string => {
-        if (!format) {
+        if (IsHelper.isNullOrUndefined(format)) {
             format = this.metadata.dateFormat;
         }
 

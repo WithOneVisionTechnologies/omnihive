@@ -17,7 +17,7 @@ import _ from "lodash";
 import pluralize from "pluralize";
 import { GraphHelper } from "./helpers/GraphHelper";
 import { HiveWorkerMetadataDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataDatabase";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildWorker {
     constructor() {
@@ -33,12 +33,12 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         databaseWorker: IDatabaseWorker,
         connectionSchema: ConnectionSchema | undefined
     ): string => {
-        if (!connectionSchema) {
+        if (IsHelper.isNullOrUndefined(connectionSchema)) {
             throw new Error("Connection Schema is Undefined.");
         }
 
         const enabledWorkers: RegisteredHiveWorker[] = this.registeredWorkers.filter(
-            (rw: RegisteredHiveWorker) => rw.enabled === true
+            (rw: RegisteredHiveWorker) => rw.enabled
         );
 
         let tables: TableSchema[];
@@ -90,7 +90,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
 
             const fullSchema: TableSchema[] = connectionSchema.tables;
             const primaryKeys: TableSchema[] | undefined = tableSchema.filter(
-                (ts: TableSchema) => ts.columnIsPrimaryKey === true
+                (ts: TableSchema) => ts.columnIsPrimaryKey
             );
 
             const primarySchema: TableSchema[] = fullSchema.filter((schema: TableSchema) => {
@@ -123,7 +123,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.config.name}",`);
             builder.appendLine(`\t\tdbTableName: "${tableSchema[0].tableName}",`);
             builder.appendLine(`\t\tdbSchemaName: "${tableSchema[0].schemaName}",`);
-            if (primaryKeys.length > 0) {
+            if (!IsHelper.isEmptyArray(primaryKeys)) {
                 builder.append(`\t\tdbPrimaryKeys: [`);
                 primaryKeys.forEach((key: TableSchema) => {
                     builder.append(`"${key.columnNameDatabase}",`);
@@ -242,7 +242,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\textensions: {`);
             builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.config.name}",`);
             builder.appendLine(`\t\tdbTableName: "${tableSchema[0].tableName}",`);
-            if (primaryKeys.length > 0) {
+            if (!IsHelper.isEmptyArray(primaryKeys)) {
                 builder.append(`\t\tdbPrimaryKeys: [`);
                 primaryKeys.forEach((key: TableSchema) => {
                     builder.append(`"${key.columnNameDatabase}",`);
@@ -692,7 +692,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const beforeInsertArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.Before &&
@@ -712,7 +713,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (beforeInsertArray.length > 0) {
+            if (!IsHelper.isEmptyArray(beforeInsertArray)) {
                 _.orderBy(beforeInsertArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -733,7 +734,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const insteadOfInsertArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.InsteadOf &&
@@ -753,7 +755,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (insteadOfInsertArray.length > 0) {
+            if (!IsHelper.isEmptyArray(insteadOfInsertArray)) {
                 _.orderBy(insteadOfInsertArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker, index) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -794,7 +796,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const afterInsertArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.After &&
@@ -814,7 +817,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (afterInsertArray.length > 0) {
+            if (!IsHelper.isEmptyArray(afterInsertArray)) {
                 _.orderBy(afterInsertArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -863,7 +866,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const beforeUpdateArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.Before &&
@@ -883,7 +887,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (beforeUpdateArray.length > 0) {
+            if (!IsHelper.isEmptyArray(beforeUpdateArray)) {
                 _.orderBy(beforeUpdateArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -900,7 +904,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const insteadOfUpdateArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.InsteadOf &&
@@ -920,7 +925,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (insteadOfUpdateArray.length > 0) {
+            if (!IsHelper.isEmptyArray(insteadOfUpdateArray)) {
                 _.orderBy(beforeUpdateArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker, index) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -947,7 +952,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const afterUpdateArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.After &&
@@ -967,7 +973,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (afterUpdateArray.length > 0) {
+            if (!IsHelper.isEmptyArray(afterUpdateArray)) {
                 _.orderBy(afterUpdateArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -1011,7 +1017,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const beforeDeleteArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.Before &&
@@ -1031,7 +1038,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (beforeDeleteArray.length > 0) {
+            if (!IsHelper.isEmptyArray(beforeDeleteArray)) {
                 _.orderBy(beforeDeleteArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -1048,7 +1055,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const insteadOfDeleteArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.InsteadOf &&
@@ -1068,7 +1076,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (insteadOfDeleteArray.length > 0) {
+            if (!IsHelper.isEmptyArray(insteadOfDeleteArray)) {
                 _.orderBy(insteadOfDeleteArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker, index) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -1095,7 +1103,8 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             const afterDeleteArray: { worker: RegisteredHiveWorker; order: number }[] = [];
 
             lifecycleWorkers.forEach((lifecycleWorker: RegisteredHiveWorker) => {
-                const metadata: HiveWorkerMetadataLifecycleFunction = lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
+                const metadata: HiveWorkerMetadataLifecycleFunction =
+                    lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
                     metadata.lifecycleStage == LifecycleWorkerStage.After &&
@@ -1115,7 +1124,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                 }
             });
 
-            if (afterDeleteArray.length > 0) {
+            if (!IsHelper.isEmptyArray(afterDeleteArray)) {
                 _.orderBy(afterDeleteArray, ["lifecycleOrder"], ["asc"]).forEach((lifecycleWorker) => {
                     builder.appendLine(
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
@@ -1144,10 +1153,10 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         // Build stored proc object if they exist
         const dbWorkerMeta: HiveWorkerMetadataDatabase = databaseWorker.config.metadata as HiveWorkerMetadataDatabase;
 
-        if (connectionSchema.procFunctions.length > 0) {
+        if (!IsHelper.isEmptyArray(connectionSchema.procFunctions)) {
             // Stored proc object type
             builder.appendLine(`var DbProcObjectType = new GraphQLObjectType({`);
-            if (!StringHelper.isNullOrWhiteSpace(dbWorkerMeta.procFunctionGraphSchemaName)) {
+            if (!IsHelper.isEmptyStringOrWhitespace(dbWorkerMeta.procFunctionGraphSchemaName)) {
                 builder.appendLine(`\tname: '${dbWorkerMeta.procFunctionGraphSchemaName}',`);
             } else {
                 builder.appendLine(`\tname: 'dbProcedures',`);
@@ -1178,7 +1187,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                             arg.schemaName === procFunction.schemaName && arg.name === procFunction.name
                     )
                     .forEach((arg: ProcFunctionSchema) => {
-                        if (arg.parameterName) {
+                        if (!IsHelper.isNullOrUndefined(arg.parameterName)) {
                             builder.append(`\t\t\t\t${arg.parameterName.replace("@", "")}: { type : `);
 
                             switch (arg.parameterTypeEntity) {
@@ -1216,7 +1225,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\tquery: new GraphQLObjectType({`);
             builder.appendLine(`\t\tname: 'Query',`);
             builder.appendLine(`\t\tfields: () => ({`);
-            if (!StringHelper.isNullOrWhiteSpace(dbWorkerMeta.procFunctionGraphSchemaName)) {
+            if (!IsHelper.isEmptyStringOrWhitespace(dbWorkerMeta.procFunctionGraphSchemaName)) {
                 builder.appendLine(`\t\t\t${dbWorkerMeta.procFunctionGraphSchemaName}: {`);
             } else {
                 builder.appendLine(`\t\t\tdbProcedures: {`);

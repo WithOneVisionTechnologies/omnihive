@@ -10,6 +10,7 @@ import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { CommonService } from "./CommonService";
 import { CommandLineArgs } from "../models/CommandLineArgs";
 import yaml from "yaml";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export class TaskRunnerService {
     public run = async (rootDir: string, commandLineArgs: CommandLineArgs): Promise<void> => {
@@ -22,12 +23,10 @@ export class TaskRunnerService {
 
         const taskWorker: RegisteredHiveWorker | undefined = global.omnihive.registeredWorkers.find(
             (rw: RegisteredHiveWorker) =>
-                rw.name === commandLineArgs.taskRunnerWorker &&
-                rw.enabled === true &&
-                rw.type === HiveWorkerType.TaskFunction
+                rw.name === commandLineArgs.taskRunnerWorker && rw.enabled && rw.type === HiveWorkerType.TaskFunction
         );
 
-        if (!taskWorker) {
+        if (IsHelper.isNullOrUndefined(taskWorker)) {
             this.logError(
                 commandLineArgs.taskRunnerWorker,
                 new Error(
@@ -40,7 +39,10 @@ export class TaskRunnerService {
         // Set up worker args
         let workerArgs: any = null;
 
-        if (commandLineArgs.taskRunnerArgs && commandLineArgs.taskRunnerArgs !== "") {
+        if (
+            !IsHelper.isNullOrUndefined(commandLineArgs.taskRunnerArgs) &&
+            !IsHelper.isEmptyStringOrWhitespace(commandLineArgs.taskRunnerArgs)
+        ) {
             try {
                 workerArgs = JSON.parse(fse.readFileSync(commandLineArgs.taskRunnerArgs, { encoding: "utf8" }));
             } catch (err) {
@@ -54,7 +56,7 @@ export class TaskRunnerService {
 
         // Try running the worker
         try {
-            if (!(workerArgs === null || workerArgs === undefined)) {
+            if (!IsHelper.isNullOrUndefined(workerArgs)) {
                 await AwaitHelper.execute(taskWorker.instance.execute(workerArgs));
             } else {
                 await AwaitHelper.execute(taskWorker.instance.execute());
@@ -69,7 +71,7 @@ export class TaskRunnerService {
     private logError = async (workerName: string, err: Error) => {
         const logWorker: ILogWorker | undefined = global.omnihive.getWorker<ILogWorker>(
             HiveWorkerType.Log,
-            "ohBootLogWorker"
+            "__ohBootLogWorker"
         );
 
         logWorker?.write(

@@ -8,6 +8,7 @@ import { serializeError } from "serialize-error";
 import swaggerUi from "swagger-ui-express";
 import isEqual from "lodash.isequal";
 import objectHash from "object-hash";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export default class SystemAccessTokenWorker extends HiveWorkerBase implements IRestEndpointWorker {
     private tokenWorker!: ITokenWorker;
@@ -18,7 +19,7 @@ export default class SystemAccessTokenWorker extends HiveWorkerBase implements I
 
     public execute = async (_headers: any, _url: string, body: any): Promise<RestEndpointExecuteResponse> => {
         const tokenWorker: ITokenWorker | undefined = this.getWorker<ITokenWorker>(HiveWorkerType.Token);
-        if (!tokenWorker) {
+        if (IsHelper.isNullOrUndefined(tokenWorker)) {
             throw new Error("Token Worker cannot be found");
         }
 
@@ -83,11 +84,14 @@ export default class SystemAccessTokenWorker extends HiveWorkerBase implements I
     };
 
     private checkRequest = (body: any | undefined) => {
-        if (!body || !body.generator) {
+        if (IsHelper.isNullOrUndefined(body) || IsHelper.isNullOrUndefined(body.generator)) {
             throw new Error("Request must have parameters");
         }
 
-        if (!this.tokenWorker || !this.tokenWorker.config.metadata) {
+        if (
+            IsHelper.isNullOrUndefined(this.tokenWorker) ||
+            IsHelper.isNullOrUndefined(this.tokenWorker.config.metadata)
+        ) {
             throw new Error("A token worker cannot be found");
         }
 

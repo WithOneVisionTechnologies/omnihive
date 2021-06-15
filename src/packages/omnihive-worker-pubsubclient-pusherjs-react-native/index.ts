@@ -1,4 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IPubSubClientWorker } from "@withonevision/omnihive-core/interfaces/IPubSubClientWorker";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
@@ -64,7 +65,7 @@ export default class PusherJsReactNativePubSubClientWorker extends HiveWorkerBas
             this.channels
                 .filter((channel: Channel) => channel.name === channelName)[0]
                 .bind(eventName, (data: any) => {
-                    if (callback && typeof callback === "function") {
+                    if (!IsHelper.isNullOrUndefined(callback) && IsHelper.isFunction(callback)) {
                         callback(data);
                     }
                 });
@@ -114,7 +115,7 @@ export default class PusherJsReactNativePubSubClientWorker extends HiveWorkerBas
     };
 
     public disconnect = (): void => {
-        if (!this.pusher) {
+        if (IsHelper.isNullOrUndefined(this.pusher)) {
             throw new Error("Pusher is not instantiated.");
         }
 
@@ -143,7 +144,7 @@ export default class PusherJsReactNativePubSubClientWorker extends HiveWorkerBas
     };
 
     public joinChannel = (channelName: string): void => {
-        if (!this.pusher) {
+        if (IsHelper.isNullOrUndefined(this.pusher)) {
             throw new Error("Pusher is not instantiated.");
         }
 
@@ -159,7 +160,7 @@ export default class PusherJsReactNativePubSubClientWorker extends HiveWorkerBas
     };
 
     public leaveChannel = (channelName: string): void => {
-        if (!this.pusher) {
+        if (IsHelper.isNullOrUndefined(this.pusher)) {
             throw new Error("Pusher is not instantiated.");
         }
 

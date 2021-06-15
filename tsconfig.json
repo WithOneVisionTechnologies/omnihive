@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "allowJs": true,
         "allowSyntheticDefaultImports": true,
         "baseUrl": ".",
         "composite": true,
@@ -8,6 +9,8 @@
         "emitDecoratorMetadata": true,
         "esModuleInterop": true,
         "experimentalDecorators": true,
+        "forceConsistentCasingInFileNames": true,
+        "jsx": "preserve",
         "lib": ["ES2020", "DOM"],
         "module": "CommonJS",
         "moduleResolution": "Node",
@@ -28,6 +31,6 @@
     "paths": {
         "@withonevision/*": ["./src/packages/*"]
     },
-    "include": ["./src/**/*.ts", "./src/**/*.json", "./src/**/*.sql"],
+    "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/package.json"],
     "exclude": [".yarn/**/*", "node_modules/**/*", "**/node_modules/**/*", "./dist/**/*" ]
 }

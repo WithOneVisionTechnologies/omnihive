@@ -1,8 +1,9 @@
 import { ObjectHelper } from "../helpers/ObjectHelper";
 import { IHiveWorker } from "../interfaces/IHiveWorker";
 import { HiveWorker } from "./HiveWorker";
-import { ServerSettings } from "./ServerSettings";
+import { AppSettings } from "./AppSettings";
 import { WorkerGetterBase } from "./WorkerGetterBase";
+import { IsHelper } from "../helpers/IsHelper";
 
 export abstract class HiveWorkerBase extends WorkerGetterBase implements IHiveWorker {
     constructor() {
@@ -10,10 +11,10 @@ export abstract class HiveWorkerBase extends WorkerGetterBase implements IHiveWo
     }
 
     public config!: HiveWorker;
-    public serverSettings!: ServerSettings;
+    public appSettings!: AppSettings;
 
     public async init(config: HiveWorker): Promise<void> {
-        if (!config || Object.keys(config).length <= 0) {
+        if (IsHelper.isNullOrUndefined(config) || IsHelper.isEmptyObject(config)) {
             throw new Error("Configuration not specified");
         }
 
@@ -25,7 +26,7 @@ export abstract class HiveWorkerBase extends WorkerGetterBase implements IHiveWo
         const objectAny: any = objectData as any;
 
         Object.keys(objectData).forEach((key: string) => {
-            if (objectAny[key] === undefined || objectAny[key] === null) {
+            if (IsHelper.isNullOrUndefined(objectAny[key])) {
                 throw new Error(`Object key ${key} is null or undefined on hive worker ${this.config.name}`);
             }
         });

@@ -1,12 +1,13 @@
 import { HiveWorkerType } from "@withonevision/omnihive-core/enums/HiveWorkerType";
 import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLogLevel";
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
-import { StringHelper } from "@withonevision/omnihive-core/helpers/StringHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { IUserWorker } from "@withonevision/omnihive-core/interfaces/IUserWorker";
 import { AuthUser } from "@withonevision/omnihive-core/models/AuthUser";
 import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
+
 import {
     AppMetadata,
     AuthenticationClient,
@@ -58,12 +59,12 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
                 scope: "read:users update:users delete:users",
             });
         } catch (err) {
-            console.log("User Init Error => " + JSON.stringify(serializeError(err)));
+            throw new Error("User Init Error => " + JSON.stringify(serializeError(err)));
         }
     }
 
     public create = async (email: string, password: string): Promise<AuthUser> => {
-        if (StringHelper.isNullOrWhiteSpace(email) || StringHelper.isNullOrWhiteSpace(password)) {
+        if (IsHelper.isEmptyStringOrWhitespace(email) || IsHelper.isEmptyStringOrWhitespace(password)) {
             throw new Error("All parameters must be valid strings");
         }
 
@@ -85,7 +86,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
     };
 
     public get = async (email: string): Promise<AuthUser> => {
-        if (StringHelper.isNullOrWhiteSpace(email)) {
+        if (IsHelper.isEmptyStringOrWhitespace(email)) {
             throw new Error("Must have an email to search by");
         }
 
@@ -99,41 +100,43 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
                 this.managementClient.getUsersByEmail(email)
             );
 
-            if (users.length === 0) {
+            if (IsHelper.isEmptyArray(users)) {
                 throw new Error("User cannot be found");
             }
 
             user = users[0];
 
-            if (!user || !user.user_id) {
+            if (IsHelper.isNullOrUndefined(user) || IsHelper.isNullOrUndefined(user.user_id)) {
                 throw new Error("User cannot be found");
             }
 
             fullUser = await AwaitHelper.execute(this.managementClient.getUser({ id: user.user_id }));
 
-            if (!fullUser) {
+            if (IsHelper.isNullOrUndefined(fullUser)) {
                 throw new Error("Full user cannot be found");
             }
 
             const authUser: AuthUser = new AuthUser();
             authUser.email = email;
 
-            if (fullUser.given_name) {
+            if (!IsHelper.isNullOrUndefined(fullUser.given_name)) {
                 authUser.firstName = fullUser.given_name;
             }
 
-            if (fullUser.family_name) {
+            if (!IsHelper.isNullOrUndefined(fullUser.family_name)) {
                 authUser.lastName = fullUser.family_name;
             }
 
-            if (fullUser.phone_number) {
+            if (!IsHelper.isNullOrUndefined(fullUser.phone_number)) {
                 authUser.phoneNumber = fullUser.phone_number;
             }
 
             if (
-                (fullUser.email && fullUser.nickname && fullUser.email.includes(fullUser.nickname)) ||
-                !user ||
-                !user.nickname
+                (!IsHelper.isNullOrUndefined(fullUser.email) &&
+                    !IsHelper.isNullOrUndefined(fullUser.nickname) &&
+                    fullUser.email.includes(fullUser.nickname)) ||
+                IsHelper.isNullOrUndefined(user) ||
+                IsHelper.isNullOrUndefined(user.nickname)
             ) {
                 authUser.nickname = "";
             } else {
@@ -141,11 +144,11 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
             }
 
             if (
-                (!StringHelper.isNullOrWhiteSpace(authUser.firstName) ||
-                    !StringHelper.isNullOrWhiteSpace(authUser.nickname)) &&
-                !StringHelper.isNullOrWhiteSpace(authUser.lastName)
+                (!IsHelper.isEmptyStringOrWhitespace(authUser.firstName) ||
+                    !IsHelper.isEmptyStringOrWhitespace(authUser.nickname)) &&
+                !IsHelper.isEmptyStringOrWhitespace(authUser.lastName)
             ) {
-                if (!StringHelper.isNullOrWhiteSpace(authUser.nickname)) {
+                if (!IsHelper.isEmptyStringOrWhitespace(authUser.nickname)) {
                     authUser.fullName = fullUser.nickname + " " + fullUser.family_name;
                 } else {
                     authUser.fullName = fullUser.given_name + " " + fullUser.family_name;
@@ -153,11 +156,11 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
             }
 
             if (
-                fullUser.user_metadata &&
-                fullUser.user_metadata.address &&
-                user?.user_metadata &&
-                user.user_metadata.address &&
-                !StringHelper.isNullOrWhiteSpace(user.user_metadata.address)
+                !IsHelper.isNullOrUndefined(fullUser.user_metadata) &&
+                !IsHelper.isNullOrUndefined(fullUser.user_metadata.address) &&
+                !IsHelper.isNullOrUndefined(user?.user_metadata) &&
+                !IsHelper.isNullOrUndefined(user.user_metadata.address) &&
+                !IsHelper.isEmptyStringOrWhitespace(user.user_metadata.address)
             ) {
                 authUser.address = fullUser.user_metadata.address;
             }
@@ -171,7 +174,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
     };
 
     public login = async (email: string, password: string): Promise<AuthUser> => {
-        if (StringHelper.isNullOrWhiteSpace(email) || StringHelper.isNullOrWhiteSpace(password)) {
+        if (IsHelper.isEmptyStringOrWhitespace(email) || IsHelper.isEmptyStringOrWhitespace(password)) {
             throw new Error("All parameters must be valid strings");
         }
 
@@ -194,7 +197,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
     };
 
     public passwordChangeRequest = async (email: string): Promise<boolean> => {
-        if (StringHelper.isNullOrWhiteSpace(email)) {
+        if (IsHelper.isEmptyStringOrWhitespace(email)) {
             throw new Error("All parameters must be valid strings");
         }
 
@@ -214,7 +217,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
     };
 
     public update = async (userName: string, authUser: AuthUser): Promise<AuthUser> => {
-        if (StringHelper.isNullOrWhiteSpace(userName) || !authUser) {
+        if (IsHelper.isEmptyStringOrWhitespace(userName) || !authUser) {
             throw new Error("Must have a username and some valid properties to update.");
         }
 
@@ -226,53 +229,53 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
             const users = await AwaitHelper.execute(this.managementClient.getUsersByEmail(userName));
             user = users[0];
 
-            if (!user || !user.user_id) {
+            if (IsHelper.isNullOrUndefined(user) || IsHelper.isNullOrUndefined(user.user_id)) {
                 throw new Error("User cannot be found");
             }
 
             const userData: UpdateUserData = {};
 
-            if (!StringHelper.isNullOrWhiteSpace(authUser.email) && userName !== authUser.email) {
+            if (!IsHelper.isEmptyStringOrWhitespace(authUser.email) && userName !== authUser.email) {
                 userData.email = authUser.email;
             } else {
                 userData.email = userName;
                 authUser.email = userName;
             }
 
-            if (!StringHelper.isNullOrWhiteSpace(authUser.firstName)) {
+            if (!IsHelper.isEmptyStringOrWhitespace(authUser.firstName)) {
                 userData.given_name = authUser.firstName;
             }
 
-            if (!StringHelper.isNullOrWhiteSpace(authUser.lastName)) {
+            if (!IsHelper.isEmptyStringOrWhitespace(authUser.lastName)) {
                 userData.family_name = authUser.lastName;
             }
 
             if (
-                user.email &&
-                user.nickname &&
+                !IsHelper.isNullOrUndefined(user.email) &&
+                !IsHelper.isNullOrUndefined(user.nickname) &&
                 user.email.includes(user.nickname) &&
-                !StringHelper.isNullOrWhiteSpace(authUser.firstName)
+                !IsHelper.isEmptyStringOrWhitespace(authUser.firstName)
             ) {
                 userData.nickname = authUser.firstName;
             }
 
             if (
-                (!StringHelper.isNullOrWhiteSpace(authUser.firstName) ||
-                    !StringHelper.isNullOrWhiteSpace(authUser.nickname)) &&
-                !StringHelper.isNullOrWhiteSpace(authUser.lastName)
+                (!IsHelper.isEmptyStringOrWhitespace(authUser.firstName) ||
+                    !IsHelper.isEmptyStringOrWhitespace(authUser.nickname)) &&
+                !IsHelper.isEmptyStringOrWhitespace(authUser.lastName)
             ) {
-                if (!StringHelper.isNullOrWhiteSpace(authUser.nickname)) {
+                if (!IsHelper.isEmptyStringOrWhitespace(authUser.nickname)) {
                     userData.name = authUser.nickname + " " + authUser.lastName;
                 } else {
                     userData.name = authUser.firstName + " " + authUser.lastName;
                 }
             }
 
-            if (!StringHelper.isNullOrWhiteSpace(authUser.nickname)) {
+            if (!IsHelper.isEmptyStringOrWhitespace(authUser.nickname)) {
                 userData.nickname = authUser.nickname;
             }
 
-            if (!StringHelper.isNullOrWhiteSpace(authUser.phoneNumber)) {
+            if (!IsHelper.isEmptyStringOrWhitespace(authUser.phoneNumber)) {
                 userData.phone_number = authUser.phoneNumber;
             }
 
@@ -280,7 +283,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
 
             const userMetaData: any = {};
 
-            if (StringHelper.isNullOrWhiteSpace(authUser.address)) {
+            if (IsHelper.isEmptyStringOrWhitespace(authUser.address)) {
                 userMetaData.address = authUser.address;
             }
 
@@ -295,7 +298,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
     };
 
     public delete = async (id: string): Promise<string> => {
-        if (StringHelper.isNullOrWhiteSpace(id)) {
+        if (IsHelper.isEmptyStringOrWhitespace(id)) {
             throw new Error("All parameters must be valid strings");
         }
 
@@ -315,7 +318,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
     };
 
     public getUserIdByEmail = async (email: string): Promise<string | undefined> => {
-        if (StringHelper.isNullOrWhiteSpace(email)) {
+        if (IsHelper.isEmptyStringOrWhitespace(email)) {
             throw new Error("Must provide an email to search.");
         }
 
@@ -327,7 +330,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
             const users = await AwaitHelper.execute(this.managementClient.getUsersByEmail(email));
             user = users[0];
 
-            if (!user || !user.user_id) {
+            if (IsHelper.isNullOrUndefined(user) || IsHelper.isNullOrUndefined(user.user_id)) {
                 return undefined;
             } else {
                 return user.user_id;

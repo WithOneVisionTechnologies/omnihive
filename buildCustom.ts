@@ -7,6 +7,7 @@ import yargs from "yargs";
 import axios from "axios";
 import { Listr } from "listr2";
 import execa from "execa";
+import { IsHelper } from "src/packages/omnihive-core/helpers/IsHelper";
 
 const build = async (): Promise<void> => {
     // Handle args
@@ -50,7 +51,7 @@ const build = async (): Promise<void> => {
 
     let buildNumber: string;
 
-    if (args.version as string) {
+    if (!IsHelper.isNullOrUndefined(args.version) && IsHelper.isString(args.version)) {
         buildNumber = args.version as string;
     } else {
         const versions = (await axios.get("https://registry.npmjs.org/-/package/omnihive/dist-tags")).data;
@@ -132,13 +133,17 @@ const publish = (args: any, directory: string) => {
 
     let publishString: string = "npm publish";
 
-    if (args.argv.publishAccess) {
+    if (
+        IsHelper.isBoolean(args.publishAccess) &&
+        !IsHelper.isNullOrUndefined(args.publishAccess) &&
+        args.publishAccess
+    ) {
         publishString = `${publishString} --access ${args.argv.publishAccess as string}`;
     } else {
         publishString = `${publishString} --access public`;
     }
 
-    if (args.argv.publishTag) {
+    if (IsHelper.isBoolean(args.publishTag) && !IsHelper.isNullOrUndefined(args.publishTag) && args.publishTag) {
         publishString = `${publishString} --tag ${args.argv.publishTag as string}`;
     }
 
