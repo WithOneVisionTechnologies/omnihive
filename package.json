@@ -18,7 +18,7 @@
     "scripts": {
         "build": "yarn node -r ts-node/register ./build.ts",
         "build:custom": "yarn node -r ts-node/register ./buildCustom.ts",
-        "build:debug": "yarn node --inspect=127.0.0.1:9228 --trace-warnings -r ts-node/register ./build.ts -d",
+        "build:debug": "yarn node --inspect --inspect-port=0 --trace-warnings -r ts-node/register ./build.ts -d",
         "cli:debug": "cd src/packages/omnihive-cli && yarn run cli:debug",
         "commit": "cz",
         "doctor": "yarn dlx @yarnpkg/doctor@2.1.3",
@@ -27,8 +27,8 @@
         "release:dry-run": "standard-version --dry-run",
         "server:debug": "cd src/packages/omnihive && yarn run server:debug",
         "taskRunner:debug": "cd src/packages/omnihive && yarn run cli:taskRunner:debug",
-        "test": "omnihive_test_settings=\"./settings/omnihive_test_config.json\" nyc --reporter=html mocha -r ts-node/register 'src/packages/**/tests/**/*.ts' --inspect=127.0.0.1:9228 --timeout 5000 --retries 5 --colors",
-        "test:custom": "omnihive_test_settings=\"./settings/omnihive_test_config.json\" nyc mocha -r ts-node/register 'src/custom/**/tests/**/*.ts' --inspect=127.0.0.1:9228 --timeout 5000 --retries 5 --colors"
+        "test": "omnihive_test_settings=\"./settings/omnihive_test_config.json\" nyc --reporter=html mocha -r ts-node/register 'src/packages/**/tests/**/*.ts' --inspect --inspect-port=0 --timeout 5000 --retries 5 --colors",
+        "test:custom": "omnihive_test_settings=\"./settings/omnihive_test_config.json\" nyc mocha -r ts-node/register 'src/custom/**/tests/**/*.ts' --inspect --inspect-port=0 --timeout 5000 --retries 5 --colors"
     },
     "dependencies": {
         "src": "link:./src"
