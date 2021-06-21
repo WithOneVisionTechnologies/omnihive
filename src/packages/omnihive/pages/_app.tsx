@@ -3,7 +3,7 @@ import ms from "ms";
 import App, { AppContext, AppProps } from "next/app";
 import Head from "next/head";
 import React from "react";
-import { IsHelper } from "src/packages/omnihive-core/helpers/IsHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import store2 from "store2";
 import WebAdminLogin from "../components/WebAdminLogin";
 import "../public/styles/next.css";

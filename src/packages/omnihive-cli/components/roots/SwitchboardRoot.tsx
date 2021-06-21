@@ -31,11 +31,11 @@ const SwitchboardRoot: React.FC = (): React.ReactElement => {
             {currentModule === CommandLineModule.Switchboard && (
                 <Box marginTop={1} flexDirection="column">
                     <Box marginBottom={1}>
-                        <Text color={CliColors.darkYellow} underline={true}>
-                            Select Option
+                        <Text color={CliColors.lightYellow} underline={true}>
+                            Which action you would like to take?
                         </Text>
                     </Box>
-                    <SelectInput items={menuItems} focusColor={CliColors.darkYellow} onSelect={onSelectHandler} />
+                    <SelectInput items={menuItems} focusColor={CliColors.lightYellow} onSelect={onSelectHandler} />
                 </Box>
             )}
             {currentModule === CommandLineModule.Create && <CreateRoot />}

@@ -1,5 +1,5 @@
 export enum CommandLineModule {
-    None,
-    Switchboard,
-    Create,
+    None = "None",
+    Switchboard = "Switchboard",
+    Create = "Create Instance",
 }

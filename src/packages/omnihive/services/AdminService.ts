@@ -22,7 +22,7 @@ import next from "next";
 import ipc from "node-ipc";
 import redis from "redis";
 import * as socketio from "socket.io";
-import { EnvironmentVariable } from "src/packages/omnihive-core/models/EnvironmentVariable";
+import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
 import { v4 as uuidv4 } from "uuid";
 
 let ipcId: string = uuidv4();

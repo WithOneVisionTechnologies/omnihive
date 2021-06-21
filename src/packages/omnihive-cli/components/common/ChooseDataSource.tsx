@@ -1,17 +1,19 @@
 import React from "react";
 import { Box, Text } from "ink";
 import SelectInput, { SelectInputItem } from "../ink/select-input/SelectInput";
-import { CliColors } from "../../stores/CommandLineStore";
+import { CliColors, currentModuleAtom } from "../../stores/CommandLineStore";
 import { DataSourceType } from "../../enums/DataSourceType";
-import { IsHelper } from "src/packages/omnihive-core/helpers/IsHelper";
+import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
+import { useAtom } from "jotai";
 
 interface ChooseDataSourceProps {
     selectedDataSource?: DataSourceType;
-    dataSourceChange: (dataSource: DataSourceType) => void;
+    onDataSourceChange: (dataSource: DataSourceType) => void;
 }
 
 const ChooseDataSource: React.FC<ChooseDataSourceProps> = (props): React.ReactElement => {
     const [currentIndex, setCurrentIndex] = React.useState<number>(0);
+    const [currentModule] = useAtom(currentModuleAtom);
 
     React.useEffect(() => {
         if (IsHelper.isNullOrUndefined(props) || IsHelper.isNullOrUndefined(props.selectedDataSource)) {
@@ -50,21 +52,22 @@ const ChooseDataSource: React.FC<ChooseDataSourceProps> = (props): React.ReactEl
     ];
 
     const onSelectHandler = (item: SelectInputItem<any>) => {
-        if (item.value !== "go-back" && !IsHelper.isNullOrUndefined(props.dataSourceChange)) {
-            props.dataSourceChange(item.value);
+        if (item.value !== "go-back" && !IsHelper.isNullOrUndefined(props.onDataSourceChange)) {
+            props.onDataSourceChange(item.value);
         }
     };
 
     return (
         <Box marginTop={1} flexDirection="column">
             <Box marginBottom={1}>
-                <Text color={CliColors.darkYellow} underline={true}>
-                    Choose Data Source
+                <Text color={CliColors.darkYellow}>{currentModule.toUpperCase() + " >> "}</Text>
+                <Text color={CliColors.lightYellow} underline={true}>
+                    Which data source would you like to use?
                 </Text>
             </Box>
             <SelectInput
                 currentIndex={currentIndex}
-                focusColor={CliColors.darkYellow}
+                focusColor={CliColors.lightYellow}
                 items={menuItems}
                 onSelect={onSelectHandler}
             />

@@ -113,7 +113,14 @@ const TextInput: React.FC<TextInputProps> = ({
 
     useInput(
         (input, key) => {
-            if (key.upArrow || key.downArrow || (key.ctrl && input === "c") || key.tab || (key.shift && key.tab)) {
+            if (
+                key.upArrow ||
+                key.downArrow ||
+                (key.ctrl && input === "c") ||
+                key.tab ||
+                (key.shift && key.tab) ||
+                key.escape
+            ) {
                 return;
             }
 
