@@ -1,38 +1,33 @@
 import { atom } from "jotai";
-import clear from "clear";
+
 import { CommandLinePage } from "../enums/CommandLinePage";
-import { SelectInputItem } from "../components/select-input/SelectInput";
-import { CreateInstanceParameters } from "../models/CreateInstanceParameters";
+import { CreateInstanceModel } from "../models/CreateInstanceModel";
+import { CommandLineModule } from "../enums/CommandLineModule";
+import { Breadcrumb } from "../models/Breadcrumb";
+
+const breadcrumbsAtom = atom<Breadcrumb[]>([{ module: CommandLineModule.None, page: CommandLinePage.None }]);
 
 export const CliColors = {
     darkOrange: "#D97706",
     darkYellow: "#FBBF24",
 };
 
-export const clearConsole = () => {
-    clear();
-};
+export const createInstanceModelAtom = atom<CreateInstanceModel>(new CreateInstanceModel());
 
-export const baseMenuItemsAtom = atom<SelectInputItem<string>[]>((get) => {
-    if (get(breadcrumbsAtom).length === 1) {
-        return [];
+export const currentModuleAtom = atom<CommandLineModule>(
+    (get) => get(breadcrumbsAtom)[get(breadcrumbsAtom).length - 1].module
+);
+
+export const currentPageAtom = atom<CommandLinePage>(
+    (get) => get(breadcrumbsAtom)[get(breadcrumbsAtom).length - 1].page
+);
+
+export const goBackOnePageAtom = atom(null, (get, set) => {
+    if (get(breadcrumbsAtom).length > 2) {
+        set(breadcrumbsAtom, get(breadcrumbsAtom).splice(0, get(breadcrumbsAtom).length - 1));
     }
-
-    return [
-        {
-            label: "Go Back",
-            value: "go-back",
-        },
-    ];
 });
 
-export const breadcrumbsAtom = atom<CommandLinePage[]>([CommandLinePage.MainMenu]);
-export const createInstanceParametersAtom = atom<CreateInstanceParameters>(new CreateInstanceParameters());
-export const currentPageAtom = atom<CommandLinePage>((get) => get(breadcrumbsAtom)[get(breadcrumbsAtom).length - 1]);
-export const goBackOnePageAtom = atom(null, (get, set) =>
-    set(breadcrumbsAtom, get(breadcrumbsAtom).splice(0, get(breadcrumbsAtom).length - 1))
-);
-export const initializedAtom = atom<boolean>(false);
-export const moveToNewPageAtom = atom(null, (get, set, newPage: CommandLinePage) =>
+export const moveToNewPageAtom = atom(null, (get, set, newPage: Breadcrumb) =>
     set(breadcrumbsAtom, [...get(breadcrumbsAtom), newPage])
 );

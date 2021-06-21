@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import figlet from "figlet";
 import { StringBuilder } from "src/packages/omnihive-core/helpers/StringBuilder";
-import { CliColors } from "../stores/CommandLineStore";
+import { CliColors } from "../../stores/CommandLineStore";
 
 const Header: React.FC = (): React.ReactElement => {
     const asciiBee = (): string => {

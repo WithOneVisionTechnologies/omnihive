@@ -1,4 +1,4 @@
-export enum CreateDataSourceType {
+export enum DataSourceType {
     JSON = "json",
     YAML = "yaml",
     Postgres = "postgres",

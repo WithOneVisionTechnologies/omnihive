@@ -1,5 +1,6 @@
 export enum CommandLinePage {
-    MainMenu = "main-menu",
-    CreateInstance_DataSource = "create-instance-data-source",
-    EditInstance = "edit-instance",
+    None,
+    Switchboard_Root,
+    CreateInstance_Root,
+    CreateInstance_DataSource,
 }
