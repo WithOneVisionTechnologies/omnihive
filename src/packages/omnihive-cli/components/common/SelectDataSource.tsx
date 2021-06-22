@@ -1,19 +1,17 @@
 import React from "react";
 import { Box, Text } from "ink";
-import SelectInput, { SelectInputItem } from "../ink/select-input/SelectInput";
-import { CliColors, currentModuleAtom } from "../../stores/CommandLineStore";
+import SelectInput, { SelectInputItem } from "../ink-forked/select-input/SelectInput";
+import { CliColors } from "../../stores/CommandLineStore";
 import { DataSourceType } from "../../enums/DataSourceType";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
-import { useAtom } from "jotai";
 
-interface ChooseDataSourceProps {
+interface SelectDataSourceProps {
     selectedDataSource?: DataSourceType;
     onDataSourceChange: (dataSource: DataSourceType) => void;
 }
 
-const ChooseDataSource: React.FC<ChooseDataSourceProps> = (props): React.ReactElement => {
+const SelectDataSource: React.FC<SelectDataSourceProps> = (props): React.ReactElement => {
     const [currentIndex, setCurrentIndex] = React.useState<number>(0);
-    const [currentModule] = useAtom(currentModuleAtom);
 
     React.useEffect(() => {
         if (IsHelper.isNullOrUndefined(props) || IsHelper.isNullOrUndefined(props.selectedDataSource)) {
@@ -60,14 +58,11 @@ const ChooseDataSource: React.FC<ChooseDataSourceProps> = (props): React.ReactEl
     return (
         <Box marginTop={1} flexDirection="column">
             <Box marginBottom={1}>
-                <Text color={CliColors.darkYellow}>{currentModule.toUpperCase() + " >> "}</Text>
-                <Text color={CliColors.lightYellow} underline={true}>
-                    Which data source would you like to use?
-                </Text>
+                <Text color={CliColors.lightYellow}>Which data source would you like to use?</Text>
             </Box>
             <SelectInput
                 currentIndex={currentIndex}
-                focusColor={CliColors.lightYellow}
+                focusColor={CliColors.mediumYellow}
                 items={menuItems}
                 onSelect={onSelectHandler}
             />
@@ -75,4 +70,4 @@ const ChooseDataSource: React.FC<ChooseDataSourceProps> = (props): React.ReactEl
     );
 };
 
-export default ChooseDataSource;
+export default SelectDataSource;

@@ -4,7 +4,7 @@ import { render } from "ink";
 import React from "react";
 import yargs from "yargs";
 import { CommandLineModule } from "./enums/CommandLineModule";
-import AppRoot from "./components/roots/AppRoot";
+import AppRoot from "./AppRoot";
 import clear from "clear";
 
 const run = async (): Promise<void> => {
@@ -19,14 +19,14 @@ const run = async (): Promise<void> => {
     });
 
     const args = await cmdLineArgs.argv;
-    let selectedModule: CommandLineModule = CommandLineModule.Switchboard;
+    let selectedModule: CommandLineModule = CommandLineModule.MainMenu;
 
     if (!IsHelper.isNullOrUndefined(args) && args._.some((value) => value === "create")) {
-        selectedModule = CommandLineModule.Create;
+        selectedModule = CommandLineModule.CreateInstance;
     }
 
     if (!IsHelper.isNullOrUndefined(args) && !IsHelper.isNullOrUndefined(args.create)) {
-        selectedModule = CommandLineModule.Create;
+        selectedModule = CommandLineModule.CreateInstance;
     }
 
     render(<AppRoot selectedModule={selectedModule} />);

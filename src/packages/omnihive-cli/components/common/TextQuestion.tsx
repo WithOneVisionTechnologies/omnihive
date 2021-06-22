@@ -1,18 +1,16 @@
 import React from "react";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
-import TextInput from "../ink/text-input/TextInput";
+import TextInput from "../ink-forked/text-input/TextInput";
 import { Text, Box } from "ink";
-import { CliColors, currentModuleAtom } from "../../stores/CommandLineStore";
-import { useAtom } from "jotai";
+import { CliColors } from "../../stores/CommandLineStore";
 
-interface TextBoxProps {
+interface TextQuestionProps {
     selectedText?: string;
     onTextChange: (returnText: string) => void;
     title: string;
 }
 
-const TextBox: React.FC<TextBoxProps> = (props): React.ReactElement => {
-    const [currentModule] = useAtom(currentModuleAtom);
+const TextQuestion: React.FC<TextQuestionProps> = (props): React.ReactElement => {
     const [textValue, setTextValue] = React.useState<string>("");
 
     React.useEffect(() => {
@@ -34,10 +32,7 @@ const TextBox: React.FC<TextBoxProps> = (props): React.ReactElement => {
     return (
         <Box marginTop={1} flexDirection="column">
             <Box marginBottom={1}>
-                <Text color={CliColors.darkYellow}>{currentModule.toUpperCase() + " >> "}</Text>
-                <Text color={CliColors.lightYellow} underline={true}>
-                    Where would you like your {props.title} to be located?
-                </Text>
+                <Text color={CliColors.lightYellow}>Where would you like your {props.title} to be located?</Text>
             </Box>
             <Box flexDirection={"row"}>
                 <Box marginRight={1}>
@@ -49,4 +44,4 @@ const TextBox: React.FC<TextBoxProps> = (props): React.ReactElement => {
     );
 };
 
-export default TextBox;
+export default TextQuestion;

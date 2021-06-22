@@ -8,9 +8,10 @@ import { Breadcrumb } from "../models/Breadcrumb";
 const breadcrumbsAtom = atom<Breadcrumb[]>([{ module: CommandLineModule.None, page: CommandLinePage.None }]);
 
 export const CliColors = {
-    darkOrange: "#D97706",
-    darkYellow: "#FBBF24",
-    lightYellow: "#FDE68A",
+    lightOrange: "#D97706",
+    darkYellow: "#F59E0B",
+    lightYellow: "#FCD34D",
+    mediumYellow: "#FBBF24",
 };
 
 export const createInstanceModelAtom = atom<CreateInstanceModel>(new CreateInstanceModel());
