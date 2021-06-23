@@ -20,7 +20,7 @@ export class OmniHiveClient extends WorkerSetterBase {
     }
 
     public static getSingleton = (): OmniHiveClient => {
-        if (!IsHelper.isNullOrUndefined(OmniHiveClient.singleton)) {
+        if (IsHelper.isNullOrUndefined(OmniHiveClient.singleton)) {
             OmniHiveClient.singleton = new OmniHiveClient();
         }
 
