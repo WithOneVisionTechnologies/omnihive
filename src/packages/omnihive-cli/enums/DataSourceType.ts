@@ -1,8 +1,8 @@
 export enum DataSourceType {
-    JSON = "json",
-    YAML = "yaml",
-    Postgres = "postgres",
-    MySQL = "mysql",
-    MSSQL = "mssql",
-    SQLite = "sqlite",
+    JSON = "JSON",
+    YAML = "YAML",
+    Postgres = "Postgres",
+    MySQL = "MySQL",
+    MSSQL = "MSSQL",
+    SQLite = "SQLite",
 }

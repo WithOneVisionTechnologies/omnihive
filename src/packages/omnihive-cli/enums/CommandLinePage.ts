@@ -1,7 +1,11 @@
 export enum CommandLinePage {
     None,
-    MainMenu_Root = "main-menu-root",
-    CreateInstance_Root = "create-instance-root",
-    CreateInstance_DataSource = "create-instance-data-source",
-    CreateInstance_ChooseFileLocation = "create-instance-choose-file-location",
+    MainMenu_Root,
+    CreateInstance_Root,
+    CreateInstance_AdminServerGroupId,
+    CreateInstance_AdminPassword,
+    CreateInstance_AdminSocketPort,
+    CreateInstance_AdminWebPort,
+    CreateInstance_DataSource,
+    CreateInstance_ChooseFileLocation,
 }

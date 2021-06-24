@@ -5,17 +5,18 @@ import { Text, Box } from "ink";
 import { CliColors } from "../../stores/CommandLineStore";
 
 interface TextQuestionProps {
-    selectedText?: string;
+    initialText?: string;
     onTextChange: (returnText: string) => void;
-    title: string;
+    textTitle: string;
+    question: string;
 }
 
 const TextQuestion: React.FC<TextQuestionProps> = (props): React.ReactElement => {
     const [textValue, setTextValue] = React.useState<string>("");
 
     React.useEffect(() => {
-        if (!IsHelper.isNullOrUndefinedOrEmptyStringOrWhitespace(props.selectedText)) {
-            setTextValue(props.selectedText);
+        if (!IsHelper.isNullOrUndefinedOrEmptyStringOrWhitespace(props.initialText)) {
+            setTextValue(props.initialText);
         }
     });
 
@@ -32,11 +33,11 @@ const TextQuestion: React.FC<TextQuestionProps> = (props): React.ReactElement =>
     return (
         <Box marginTop={1} flexDirection="column">
             <Box marginBottom={1}>
-                <Text color={CliColors.lightYellow}>Where would you like your {props.title} to be located?</Text>
+                <Text color={CliColors.lightYellow}>{props.question}</Text>
             </Box>
             <Box flexDirection={"row"}>
                 <Box marginRight={1}>
-                    <Text>File Location:</Text>
+                    <Text>{props.textTitle}:</Text>
                 </Box>
                 <TextInput showCursor={true} value={textValue} onChange={onChangeHandler} onSubmit={onSubmitHandler} />
             </Box>

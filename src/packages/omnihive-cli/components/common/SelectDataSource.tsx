@@ -50,7 +50,7 @@ const SelectDataSource: React.FC<SelectDataSourceProps> = (props): React.ReactEl
     ];
 
     const onSelectHandler = (item: SelectInputItem<any>) => {
-        if (item.value !== "go-back" && !IsHelper.isNullOrUndefined(props.onDataSourceChange)) {
+        if (!IsHelper.isNullOrUndefined(props.onDataSourceChange)) {
             props.onDataSourceChange(item.value);
         }
     };

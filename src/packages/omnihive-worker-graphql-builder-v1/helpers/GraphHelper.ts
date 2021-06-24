@@ -1,5 +1,4 @@
 import _ from "lodash";
-import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 interface ITypeHandlers {
     [index: string]: ITypeHandler;
@@ -79,28 +78,28 @@ export class GraphHelper {
         // Determines that on no results, and empty list is used instead of null. // NOTE: fact check this
         let listOnEmpty = false;
 
-        if (IsHelper.isUndefined(structPropToColumnMap)) {
+        if (typeof structPropToColumnMap === "undefined") {
             structPropToColumnMap = null;
         }
 
-        if (IsHelper.isNull(data)) {
+        if (data === null) {
             return null;
         }
 
         if (
-            !IsHelper.isArray(structPropToColumnMap) &&
-            !IsHelper.isPlainObject(structPropToColumnMap) &&
-            !IsHelper.isNull(structPropToColumnMap) &&
+            !Array.isArray(structPropToColumnMap) &&
+            !_.isPlainObject(structPropToColumnMap) &&
+            structPropToColumnMap !== null &&
             structPropToColumnMap !== true
         ) {
             throw new Error("nest expects param structPropToColumnMap to be an array, plain object, null, or true");
         }
 
-        if (IsHelper.isPlainObject(data)) {
+        if (_.isPlainObject(data)) {
             // internal table should be a table format but a plain object
             // could be passed as the first (and only) row of that table
             table = [data];
-        } else if (IsHelper.isArray(data)) {
+        } else if (Array.isArray(data)) {
             table = data;
         } else {
             throw Error(
@@ -115,18 +114,18 @@ export class GraphHelper {
             structPropToColumnMap = null;
         }
 
-        if (IsHelper.isNull(structPropToColumnMap) && !IsHelper.isEmptyArray(table)) {
+        if (structPropToColumnMap === null && table.length > 0) {
             // property mapping not specified, determine it from column names
             structPropToColumnMap = this.structPropToColumnMapFromColumnHints(_.keys(table[0]));
         }
 
-        if (IsHelper.isNull(structPropToColumnMap)) {
+        if (structPropToColumnMap === null) {
             // properties is empty, can't form structure or determine content
             // for a list. Assume a structure unless listOnEmpty
             return listOnEmpty ? [] : null;
-        } else if (IsHelper.isEmptyArray(table)) {
+        } else if (table.length === 0) {
             // table is empty, return the appropriate empty result based on input definition
-            return IsHelper.isArray(structPropToColumnMap) ? [] : null;
+            return Array.isArray(structPropToColumnMap) ? [] : null;
         }
 
         // COMPLETE VALIDATING PARAMS AND BASIC INITIALIZATION
@@ -148,8 +147,11 @@ export class GraphHelper {
 
             // If any of the values are null, we'll check and see if we need to set defaults
             vals = vals.map((value, idx) => {
-                if (IsHelper.isNull(value)) {
-                    if (!IsHelper.isNullOrUndefined(objMeta.defaults[idColumns[idx]])) {
+                if (value === null) {
+                    if (
+                        objMeta.defaults[idColumns[idx]] !== null &&
+                        typeof objMeta.defaults[idColumns[idx]] !== "undefined"
+                    ) {
                         return objMeta.defaults[idColumns[idx]];
                     }
                 }
@@ -161,21 +163,21 @@ export class GraphHelper {
             }
 
             // check if object already exists in cache
-            if (!IsHelper.isUndefined(objMeta.cache[this.createCompositeKey(vals)])) {
+            if (typeof objMeta.cache[this.createCompositeKey(vals)] !== "undefined") {
                 // not already placed as to-many relation in container
                 obj = objMeta.cache[this.createCompositeKey(vals)];
 
                 // Add array values if necessary
                 for (const prop of objMeta.arraysList) {
                     const cellValue = this.computeActualCellValue(prop, row[prop.column as string]);
-                    if (IsHelper.isArray(obj[prop.prop])) {
+                    if (Array.isArray(obj[prop.prop])) {
                         obj[prop.prop].push(cellValue);
                     } else {
                         obj[prop.prop] = [cellValue];
                     }
                 }
 
-                if (IsHelper.isNull(objMeta.containingIdUsage)) {
+                if (objMeta.containingIdUsage === null) {
                     return;
                 }
 
@@ -186,10 +188,10 @@ export class GraphHelper {
                 // and if so we don't need to continue
                 const containingIds = (objMeta.containingColumn as string[]).map((column) => row[column]);
                 if (
-                    !IsHelper.isUndefined(objMeta.containingIdUsage[this.createCompositeKey(vals)]) &&
-                    !IsHelper.isUndefined(
-                        objMeta.containingIdUsage[this.createCompositeKey(vals)][this.createCompositeKey(containingIds)]
-                    )
+                    typeof objMeta.containingIdUsage[this.createCompositeKey(vals)] !== "undefined" &&
+                    typeof objMeta.containingIdUsage[this.createCompositeKey(vals)][
+                        this.createCompositeKey(containingIds)
+                    ] !== "undefined"
                 ) {
                     return;
                 }
@@ -207,7 +209,7 @@ export class GraphHelper {
                 // Add array values
                 for (const prop of objMeta.arraysList) {
                     const cellValue = this.computeActualCellValue(prop, row[prop.column as string]);
-                    if (IsHelper.isArray(obj[prop.prop])) {
+                    if (Array.isArray(obj[prop.prop])) {
                         obj[prop.prop].push(cellValue);
                     } else {
                         obj[prop.prop] = [cellValue];
@@ -223,16 +225,16 @@ export class GraphHelper {
                 // initialize null to-one relations and then recursively build them
                 for (const prop of objMeta.toOneList) {
                     obj[prop.prop] = null;
-                    recursiveNest(row, IsHelper.isArray(prop.column) ? prop.column : [prop.column]);
+                    recursiveNest(row, Array.isArray(prop.column) ? prop.column : [prop.column]);
                 }
             }
 
             // link from the parent
-            if (IsHelper.isNull(objMeta.containingColumn)) {
+            if (objMeta.containingColumn === null) {
                 // parent is the top level
-                if (!IsHelper.isNullOrUndefined(objMeta.isOneOfMany)) {
+                if (objMeta.isOneOfMany) {
                     // it is an array
-                    if (IsHelper.isNull(this.struct)) {
+                    if (this.struct === null) {
                         this.struct = [];
                     }
                     (this.struct as any[]).push(obj);
@@ -249,8 +251,8 @@ export class GraphHelper {
 
                 // If a container exists, it must not be a root, and thus there should
                 // be an ownProp set
-                if (!IsHelper.isNullOrUndefined(container)) {
-                    if (!IsHelper.isNullOrUndefined(objMeta.isOneOfMany)) {
+                if (container) {
+                    if (objMeta.isOneOfMany) {
                         // it is an array
                         container[objMeta.ownProp as string].push(obj);
                     } else {
@@ -262,7 +264,7 @@ export class GraphHelper {
                 // record the containing id so we don't do this again (return in earlier
                 // part of this method)
                 const containingIdUsage = objMeta.containingIdUsage as IDictionary<IDictionary<boolean>>;
-                if (IsHelper.isUndefined(containingIdUsage[this.createCompositeKey(vals)])) {
+                if (typeof containingIdUsage[this.createCompositeKey(vals)] === "undefined") {
                     containingIdUsage[this.createCompositeKey(vals)] = {};
                 }
                 containingIdUsage[this.createCompositeKey(vals)][this.createCompositeKey(containingIds)] = true;
@@ -288,7 +290,7 @@ export class GraphHelper {
      *
      */
     public structPropToColumnMapFromColumnHints(columnList: string[], renameMapping?: IDictionary<string>) {
-        if (IsHelper.isUndefined(renameMapping)) {
+        if (typeof renameMapping === "undefined") {
             renameMapping = {};
         }
 
@@ -303,10 +305,10 @@ export class GraphHelper {
             for (let j = 1; j < columnType.length; j++) {
                 if (columnType[j] === "ID") {
                     idFlagSet = true;
-                } else if (!IsHelper.isUndefined(this.typeHandlers[columnType[j]])) {
+                } else if (typeof this.typeHandlers[columnType[j]] !== "undefined") {
                     type = columnType[j];
                 }
-                if (IsHelper.isArray(columnType[j])) {
+                if (columnType[j] === "ARRAY") {
                     arrayFlagSet = true;
                 }
             }
@@ -319,37 +321,32 @@ export class GraphHelper {
             for (let j = 0; j < navList.length; j++) {
                 const nav = navList[j];
 
-                if (IsHelper.isEmptyStringOrWhitespace(nav)) {
-                    if (IsHelper.isNull(pointer[prop])) {
+                if (nav === "") {
+                    if (pointer[prop] === null) {
                         pointer[prop] = [null];
                     }
                     pointer = pointer[prop];
                     prop = 0;
                 } else {
-                    if (IsHelper.isNull(pointer[prop])) {
+                    if (pointer[prop] === null) {
                         pointer[prop] = {};
                     }
-                    if (IsHelper.isUndefined(pointer[prop][nav])) {
-                        let renamedColumn: any = IsHelper.isUndefined(renameMapping[column])
-                            ? column
-                            : renameMapping[column];
-                        if (
-                            !IsHelper.isNull(type) ||
-                            !IsHelper.isNullOrUndefined(idFlagSet) ||
-                            !IsHelper.isNullOrUndefined(arrayFlagSet)
-                        ) {
+                    if (typeof pointer[prop][nav] === "undefined") {
+                        let renamedColumn: any =
+                            typeof renameMapping[column] === "undefined" ? column : renameMapping[column];
+                        if (type !== null || idFlagSet || arrayFlagSet) {
                             // no longer a simple mapping, has need of the type or id properties
                             renamedColumn = { column: renamedColumn };
                         }
-                        if (!IsHelper.isNull(type)) {
+                        if (type !== null) {
                             // detail the type in the column map if type provided
                             renamedColumn.type = type;
                         }
-                        if (!IsHelper.isNullOrUndefined(idFlagSet)) {
+                        if (idFlagSet) {
                             // set the id property in the column map
                             renamedColumn.id = true;
                         }
-                        if (!IsHelper.isNullOrUndefined(arrayFlagSet)) {
+                        if (arrayFlagSet) {
                             renamedColumn.array = true;
                         }
                         pointer[prop][nav] =
@@ -368,7 +365,7 @@ export class GraphHelper {
 
     /* Registers a custom type handler */
     public registerType(name: string, handler: ITypeHandler) {
-        if (!IsHelper.isNullOrUndefined(this.typeHandlers[name])) {
+        if (this.typeHandlers[name]) {
             throw new Error("Handler with type, " + name + ", already exists");
         }
 
@@ -377,19 +374,19 @@ export class GraphHelper {
 
     private computeActualCellValue(props: IMetaValueProps, initialValue: any) {
         let cellValue = initialValue;
-        if (!IsHelper.isNull(cellValue)) {
+        if (cellValue !== null) {
             let valueTypeFunction: ITypeHandler | undefined;
 
-            if (IsHelper.isFunction(props.type)) {
+            if (typeof props.type === "function") {
                 valueTypeFunction = props.type as ITypeHandler;
-            } else if (IsHelper.isString(props.type)) {
+            } else if (typeof props.type === "string") {
                 valueTypeFunction = this.typeHandlers[props.type];
             }
 
-            if (!IsHelper.isNullOrUndefined(valueTypeFunction)) {
+            if (valueTypeFunction) {
                 cellValue = valueTypeFunction(cellValue);
             }
-        } else if (!IsHelper.isUndefined(props.default)) {
+        } else if (typeof props.default !== "undefined") {
             cellValue = props.default;
         }
         return cellValue;
@@ -413,7 +410,7 @@ export class GraphHelper {
             let idColumns = [];
 
             const propList = _.keys(structPropToColumnMap);
-            if (IsHelper.isEmptyArray(propList.length)) {
+            if (propList.length === 0) {
                 throw new Error(
                     "invalid structPropToColumnMap format - property '" + ownProp + "' can not be an empty array"
                 );
@@ -427,24 +424,25 @@ export class GraphHelper {
             }
 
             // If no columns are flagged as id, then use the first value in the prop list
-            if (IsHelper.isEmptyArray(idProps)) {
-                (idProps as any[]).push(propList[0]);
+            if (idProps.length === 0) {
+                idProps.push(propList[0]);
             }
 
             idColumns = idProps.map((prop) => {
                 return (structPropToColumnMap[prop] as IDefinitionColumn).column || structPropToColumnMap[prop];
             }) as string[];
 
-            if (!IsHelper.isNullOrUndefined(isOneOfMany)) {
+            if (isOneOfMany) {
                 meta.primeIdColumnList.push(idColumns);
             }
 
             const defaults: IDictionary<string | null> = {};
 
             idProps.forEach((prop) => {
-                defaults[prop] = IsHelper.isUndefined((structPropToColumnMap[prop] as IDefinitionColumn).default)
-                    ? null
-                    : (structPropToColumnMap[prop] as IDefinitionColumn).default;
+                defaults[prop] =
+                    typeof (structPropToColumnMap[prop] as IDefinitionColumn).default === "undefined"
+                        ? null
+                        : (structPropToColumnMap[prop] as IDefinitionColumn).default;
             });
 
             const objMeta: IMetaColumnData = {
@@ -454,14 +452,14 @@ export class GraphHelper {
                 toManyPropList: [],
                 containingColumn,
                 ownProp,
-                isOneOfMany,
+                isOneOfMany: isOneOfMany === true,
                 cache: {},
-                containingIdUsage: IsHelper.isNull(containingColumn) ? null : {},
+                containingIdUsage: containingColumn === null ? null : {},
                 defaults,
             };
 
             for (const prop of propList) {
-                if (IsHelper.isString(structPropToColumnMap[prop])) {
+                if (typeof structPropToColumnMap[prop] === "string") {
                     // value property
                     objMeta.valueList.push({
                         prop,
@@ -469,7 +467,7 @@ export class GraphHelper {
                         type: undefined,
                         default: undefined,
                     });
-                } else if (!IsHelper.isNullOrUndefined((structPropToColumnMap[prop] as IDefinitionColumn).column)) {
+                } else if ((structPropToColumnMap[prop] as IDefinitionColumn).column) {
                     // value property
                     const definitionColumn = structPropToColumnMap[prop] as IDefinitionColumn;
                     const metaValueProps = {
@@ -485,31 +483,31 @@ export class GraphHelper {
                     } else {
                         objMeta.valueList.push(metaValueProps);
                     }
-                } else if (IsHelper.isArray(structPropToColumnMap[prop])) {
+                } else if (Array.isArray(structPropToColumnMap[prop])) {
                     // list of objects / to-many relation
                     objMeta.toManyPropList.push(prop);
 
                     recursiveBuildMeta((structPropToColumnMap[prop] as IDefinition[])[0], true, idColumns, prop);
-                } else if (IsHelper.isPlainObject(structPropToColumnMap[prop])) {
+                } else if (_.isPlainObject(structPropToColumnMap[prop])) {
                     // object / to-one relation
 
                     const subIdProps = [];
 
                     for (const value of _.values(structPropToColumnMap[prop])) {
-                        if (IsHelper.isPlainObject(value) && value.id) {
+                        if (typeof value === "object" && value.id === true) {
                             subIdProps.push(value.column);
                         }
                     }
 
                     // If no columns are flagged as id, then use the first value in the prop list
-                    if (IsHelper.isEmptyArray(subIdProps)) {
+                    if (subIdProps.length === 0) {
                         const column = _.values(structPropToColumnMap[prop])[0];
-                        (subIdProps as any[]).push(IsHelper.isPlainObject(column) ? column.column : column);
+                        subIdProps.push(typeof column === "object" ? column.column : column);
                     }
 
                     objMeta.toOneList.push({
                         prop,
-                        column: subIdProps as any[],
+                        column: subIdProps,
                     });
                     recursiveBuildMeta(structPropToColumnMap[prop] as IDefinition, false, idColumns, prop);
                 } else {
@@ -530,7 +528,7 @@ export class GraphHelper {
             idMap: {},
         } as IMetaData;
 
-        if (IsHelper.isArray(structPropToColumnMap)) {
+        if (Array.isArray(structPropToColumnMap)) {
             if (structPropToColumnMap.length !== 1) {
                 throw new Error(
                     `invalid structPropToColumnMap format - can not have multiple roots for structPropToColumnMap, if an array it must only have one item`
@@ -538,11 +536,11 @@ export class GraphHelper {
             }
             // call with first object, but inform _buildMeta it is an array
             recursiveBuildMeta((structPropToColumnMap as IDefinition[])[0], true, null, null);
-        } else if (IsHelper.isPlainObject(structPropToColumnMap)) {
+        } else if (_.isPlainObject(structPropToColumnMap)) {
             // register first column as prime id column
             const columns = _.values(structPropToColumnMap) as any[];
 
-            if (IsHelper.isEmptyArray(columns)) {
+            if (columns.length === 0) {
                 throw new Error("invalid structPropToColumnMap format - the base object can not be an empty object");
             }
 
@@ -555,11 +553,11 @@ export class GraphHelper {
             }, []);
 
             // If there were no keys set, then take the first column as the id
-            if (IsHelper.isEmptyArray(idColumns)) {
-                if (IsHelper.isString(columns[0])) {
-                    (idColumns as string[]).push(columns[0]);
-                } else if (IsHelper.isString(columns[0].column)) {
-                    (idColumns as string[]).push(columns[0].column);
+            if (idColumns.length === 0) {
+                if (typeof columns[0] === "string") {
+                    idColumns.push(columns[0]);
+                } else if (typeof columns[0].column === "string") {
+                    idColumns.push(columns[0].column);
                 }
             }
 

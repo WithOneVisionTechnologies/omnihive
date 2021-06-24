@@ -7181,6 +7181,13 @@ fsevents@~2.3.1:
   languageName: node
   linkType: hard
 
+"generate-password@npm:1.6.0":
+  version: 1.6.0
+  resolution: "generate-password@npm:1.6.0"
+  checksum: 84346fa877f029164ce31ab4df634fb5169a6e9f0e9911f506e0fb344c350241a2e4282cd74000cde1bddd677d66f8519fe8b7d71c960ff7c994f8c222929813
+  languageName: node
+  linkType: hard
+
 "gensync@npm:^1.0.0-beta.2":
   version: 1.0.0-beta.2
   resolution: "gensync@npm:1.0.0-beta.2"
@@ -11102,12 +11109,14 @@ fsevents@~2.3.1:
     "@types/lodash.isequal": 4.5.5
     "@types/node": 15.12.2
     "@types/react": 17.0.11
+    "@types/uuid": 8.3.0
     "@types/yargs": 17.0.0
     arr-rotate: 1.0.0
     chalk: 4.1.1
     clear: 0.1.0
     figlet: 1.5.0
     figures: 3.2.0
+    generate-password: 1.6.0
     ink: 3.0.8
     jotai: 1.0.0
     lodash.isequal: 4.5.0
@@ -11115,6 +11124,7 @@ fsevents@~2.3.1:
     react: 17.0.2
     ts-node: 10.0.0
     typescript: 4.2.4
+    uuid: 8.3.2
     yargs: 17.0.1
   bin:
     omnihive-cli: ./omnihive.js
