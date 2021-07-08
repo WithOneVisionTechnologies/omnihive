@@ -2,10 +2,10 @@ import { LifecycleWorkerAction } from "../enums/LifecycleWorkerAction";
 import { LifecycleWorkerStage } from "../enums/LifecycleWorkerStage";
 
 export class HiveWorkerMetadataLifecycleFunction {
-    public lifecycleAction: LifecycleWorkerAction = LifecycleWorkerAction.None;
-    public lifecycleStage: LifecycleWorkerStage = LifecycleWorkerStage.None;
-    public lifecycleOrder: number = 0;
-    public lifecycleWorker: string = "";
-    public lifecycleSchema: string = "";
-    public lifecycleTables: string[] = [];
+    public action: LifecycleWorkerAction = LifecycleWorkerAction.None;
+    public stage: LifecycleWorkerStage = LifecycleWorkerStage.None;
+    public order: number = 0;
+    public databaseWorker: string = "";
+    public schema: string = "";
+    public tables: string[] = [];
 }

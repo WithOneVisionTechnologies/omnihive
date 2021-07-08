@@ -6,7 +6,6 @@ import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IDatabaseWorker } from "@withonevision/omnihive-core/interfaces/IDatabaseWorker";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { ProcFunctionSchema } from "@withonevision/omnihive-core/models/ProcFunctionSchema";
 import { TableSchema } from "@withonevision/omnihive-core/models/TableSchema";
@@ -23,14 +22,14 @@ export class SqliteWorkerMetadata extends HiveWorkerMetadataDatabase {
 
 export default class MySqlDatabaseWorker extends HiveWorkerBase implements IDatabaseWorker {
     public connection!: Knex;
-    private metadata!: SqliteWorkerMetadata;
+    private typedMetadata!: SqliteWorkerMetadata;
 
     constructor() {
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        const sqliteMetadata: SqliteWorkerMetadata = config.metadata as SqliteWorkerMetadata;
+    public async init(name: string, metadata?: any): Promise<void> {
+        const sqliteMetadata: SqliteWorkerMetadata = metadata as SqliteWorkerMetadata;
 
         sqliteMetadata.ignoreSchema = true;
         sqliteMetadata.password = "";
@@ -44,10 +43,10 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
         sqliteMetadata.userName = "";
 
         try {
-            await AwaitHelper.execute(super.init(config));
-            this.metadata = this.checkObjectStructure<SqliteWorkerMetadata>(SqliteWorkerMetadata, sqliteMetadata);
+            await AwaitHelper.execute(super.init(name, metadata));
+            this.typedMetadata = this.checkObjectStructure<SqliteWorkerMetadata>(SqliteWorkerMetadata, sqliteMetadata);
 
-            if (!fse.existsSync(this.metadata.filename)) {
+            if (!fse.existsSync(this.typedMetadata.filename)) {
                 throw new Error("Sqlite database cannot be found");
             }
 
@@ -55,7 +54,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
                 client: "sqlite3",
                 useNullAsDefault: true,
                 connection: {
-                    filename: this.metadata.filename,
+                    filename: this.typedMetadata.filename,
                 },
             };
             this.connection = knex(connectionOptions);
@@ -87,7 +86,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
 
     public getSchema = async (): Promise<ConnectionSchema> => {
         const result: ConnectionSchema = {
-            workerName: this.config.name,
+            workerName: this.name,
             tables: [],
             procFunctions: [],
         };
@@ -96,11 +95,11 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
         const logWorker: ILogWorker | undefined = this.getWorker<ILogWorker | undefined>(HiveWorkerType.Log);
 
         try {
-            const tableFilePath = global.omnihive.getFilePath(this.metadata.getSchemaSqlFile);
+            const tableFilePath = global.omnihive.getFilePath(this.typedMetadata.getSchemaSqlFile);
 
             if (
-                !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
-                !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile) &&
+                !IsHelper.isNullOrUndefined(this.typedMetadata.getSchemaSqlFile) &&
+                !IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.getSchemaSqlFile) &&
                 fse.existsSync(tableFilePath)
             ) {
                 tableResult = await AwaitHelper.execute(
@@ -108,8 +107,8 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
                 );
             } else {
                 if (
-                    !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
-                    !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile)
+                    !IsHelper.isNullOrUndefined(this.typedMetadata.getSchemaSqlFile) &&
+                    !IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.getSchemaSqlFile)
                 ) {
                     logWorker?.write(OmniHiveLogLevel.Warn, "Provided Schema SQL File is not found.");
                 }
@@ -118,7 +117,7 @@ export default class MySqlDatabaseWorker extends HiveWorkerBase implements IData
                         this.executeQuery(fse.readFileSync(path.join(__dirname, "defaultTables.sql"), "utf8"), true)
                     );
                 } else {
-                    throw new Error(`Cannot find a table executor for ${this.config.name}`);
+                    throw new Error(`Cannot find a table executor for ${this.name}`);
                 }
             }
         } catch (err) {

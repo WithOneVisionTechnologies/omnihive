@@ -1,6 +1,6 @@
 {
     "name": "@withonevision/omnihive-worker-function-core",
-    "version": "6.2.33",
+    "version": "6.2.45",
     "description": "OmniHive Worker Core Functions",
     "license": "MIT",
     "author": {
@@ -25,15 +25,11 @@
     "dependencies": {
         "@withonevision/omnihive-core": "workspace:*",
         "express": "4.17.1",
-        "lodash.isequal": "4.5.0",
-        "object-hash": "2.2.0",
         "serialize-error": "8.1.0",
         "swagger-ui-express": "4.1.6"
     },
     "devDependencies": {
         "@types/express": "4.17.12",
-        "@types/lodash.isequal": "4.5.5",
-        "@types/object-hash": "2.1.0",
         "@types/sinon": "10.0.1",
         "@types/swagger-ui-express": "4.1.2",
         "chai": "4.3.4",

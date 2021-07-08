@@ -1,6 +1,6 @@
 {
     "name": "omnihive",
-    "version": "6.2.33",
+    "version": "6.2.45",
     "description": "OmniHive Server",
     "license": "MIT",
     "author": {
@@ -355,7 +355,8 @@
                 "default": true,
                 "enabled": true,
                 "metadata": {
-                    "encryptionKey": "${OH_SECURITY_ENCRYPTION_KEY}"
+                    "encryptionKey": "${OH_SECURITY_ENCRYPTION_KEY}",
+                    "randomCharacters": "${OH_SECURITY_ENCRYPTION_RANDOM_CHARACTERS}"
                 }
             },
             {
@@ -385,7 +386,6 @@
                     "audience": "${OH_SECURITY_TOKEN_AUDIENCE}",
                     "tokenSecret": "${OH_SECURITY_TOKEN_SECRET}",
                     "expiresIn": "${OH_SECURITY_TOKEN_EXPIRES_IN}",
-                    "hashAlgorithm": "${OH_SECURITY_TOKEN_HASH_ALGORITHM}",
                     "verifyOn": false
                 }
             }

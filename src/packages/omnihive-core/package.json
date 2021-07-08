@@ -1,6 +1,6 @@
 {
     "name": "@withonevision/omnihive-core",
-    "version": "6.2.33",
+    "version": "6.2.45",
     "description": "OmniHive Core",
     "license": "MIT",
     "author": {
@@ -23,8 +23,7 @@
         "build": "tsc"
     },
     "dependencies": {
-        "graphql": "15.5.0",
-        "serialize-error": "8.1.0"
+        "graphql": "15.5.0"
     },
     "devDependencies": {
         "chai": "4.3.4",

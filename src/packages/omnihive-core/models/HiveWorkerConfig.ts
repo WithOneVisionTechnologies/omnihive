@@ -1,5 +1,7 @@
-export class HiveWorker {
-    public type: string = "";
+import { HiveWorkerType } from "../enums/HiveWorkerType";
+
+export class HiveWorkerConfig {
+    public type: HiveWorkerType | string = HiveWorkerType.User;
     public name: string = "";
     public package: string = "";
     public version: string = "";

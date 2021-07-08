@@ -92,7 +92,7 @@ const setupTasks = (args: any, version: string): Listr<any> => {
         },
         {
             title: "Publish Packages",
-            skip: (_ctx) => args.argv.publish as boolean,
+            skip: (_ctx) => !args.publish as boolean,
             task: (_ctx, task): Listr =>
                 task.newListr(
                     getPublishFolders().map((directory) => ({
@@ -129,7 +129,7 @@ const getPublishFolders = () => {
 };
 
 const publish = (args: any, directory: string) => {
-    fse.rmdirSync(path.join(`.`, `dist`, `packages`, directory, `tests`), { recursive: true });
+    fse.rmdirSync(path.join(`.`, `dist`, `custom`, directory, `tests`), { recursive: true });
 
     let publishString: string = "npm publish";
 
@@ -138,17 +138,17 @@ const publish = (args: any, directory: string) => {
         !IsHelper.isNullOrUndefined(args.publishAccess) &&
         args.publishAccess
     ) {
-        publishString = `${publishString} --access ${args.argv.publishAccess as string}`;
+        publishString = `${publishString} --access ${args.publishAccess as string}`;
     } else {
         publishString = `${publishString} --access public`;
     }
 
     if (IsHelper.isBoolean(args.publishTag) && !IsHelper.isNullOrUndefined(args.publishTag) && args.publishTag) {
-        publishString = `${publishString} --tag ${args.argv.publishTag as string}`;
+        publishString = `${publishString} --tag ${args.publishTag as string}`;
     }
 
     console.log(`Publishing NPM Package at ${directory}`);
-    execa.commandSync(publishString, { cwd: path.join(`.`, `dist`, `packages`, `${directory}`) });
+    execa.commandSync(publishString, { cwd: path.join(`.`, `dist`, `custom`, `${directory}`) });
 };
 
 const updateVersion = async (buildNumber: string) => {

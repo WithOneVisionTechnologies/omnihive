@@ -14,7 +14,8 @@ import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
 import { AdminRequest } from "@withonevision/omnihive-core/models/AdminRequest";
 import { AdminResponse } from "@withonevision/omnihive-core/models/AdminResponse";
-import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
+import { ServerConfig } from "@withonevision/omnihive-core/models/ServerConfig";
+import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -22,7 +23,6 @@ import next from "next";
 import ipc from "node-ipc";
 import redis from "redis";
 import * as socketio from "socket.io";
-import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
 import { v4 as uuidv4 } from "uuid";
 
 let ipcId: string = uuidv4();
@@ -149,7 +149,7 @@ export class AdminService {
                     return;
                 }
 
-                let appSettings: AppSettings = new AppSettings();
+                let serverConfig: ServerConfig = new ServerConfig();
 
                 const configWorker: IConfigWorker | undefined = global.omnihive.getWorker<IConfigWorker>(
                     HiveWorkerType.Config
@@ -160,18 +160,18 @@ export class AdminService {
                     return;
                 }
 
-                appSettings = await AwaitHelper.execute(configWorker.get());
+                serverConfig = await AwaitHelper.execute(configWorker.get());
 
                 this.sendSuccessToSocket(AdminEventType.ConfigRequest, socket, {
-                    config: appSettings,
-                    systemEnvironmentVariables: global.omnihive.appSettings.environmentVariables.filter(
+                    config: serverConfig,
+                    systemEnvironmentVariables: global.omnihive.serverConfig.environmentVariables.filter(
                         (variable: EnvironmentVariable) => variable.isSystem
                     ),
                 });
             });
 
             // Admin Event : Config Save
-            socket.on(AdminEventType.ConfigSaveRequest, async (message: AdminRequest<{ config: AppSettings }>) => {
+            socket.on(AdminEventType.ConfigSaveRequest, async (message: AdminRequest<{ config: ServerConfig }>) => {
                 if (!this.checkRequest(AdminEventType.ConfigSaveRequest, message, socket)) {
                     return;
                 }
@@ -185,8 +185,8 @@ export class AdminService {
                         );
                     }
 
-                    const settings: AppSettings = ObjectHelper.createStrict<AppSettings>(
-                        AppSettings,
+                    const settings: ServerConfig = ObjectHelper.createStrict<ServerConfig>(
+                        ServerConfig,
                         message.data?.config
                     );
 

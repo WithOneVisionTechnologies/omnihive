@@ -4,7 +4,6 @@ import { OmniHiveLogLevel } from "@withonevision/omnihive-core/enums/OmniHiveLog
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 
 export class ElasticLogWorkerMetadata {
@@ -22,30 +21,30 @@ export default class ElasticLogWorker extends HiveWorkerBase implements ILogWork
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
-        const metadata: ElasticLogWorkerMetadata = this.checkObjectStructure<ElasticLogWorkerMetadata>(
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
+        const typedMetadata: ElasticLogWorkerMetadata = this.checkObjectStructure<ElasticLogWorkerMetadata>(
             ElasticLogWorkerMetadata,
-            config.metadata
+            metadata
         );
 
-        this.logIndex = metadata.logIndex;
+        this.logIndex = typedMetadata.logIndex;
 
         this.elasticClient = new Client({
             cloud: {
-                id: metadata.cloudId,
+                id: typedMetadata.cloudId,
             },
             auth: {
-                username: metadata.cloudUser,
-                password: metadata.cloudPassword,
+                username: typedMetadata.cloudUser,
+                password: typedMetadata.cloudPassword,
             },
         });
 
         this.elasticClient.indices
-            .exists({ index: metadata.logIndex })
+            .exists({ index: typedMetadata.logIndex })
             .then((indexExists: ApiResponse<boolean, Context>) => {
                 if (IsHelper.isNullOrUndefined(indexExists.body)) {
-                    this.elasticClient.indices.create({ index: metadata.logIndex });
+                    this.elasticClient.indices.create({ index: typedMetadata.logIndex });
                 }
             });
     }

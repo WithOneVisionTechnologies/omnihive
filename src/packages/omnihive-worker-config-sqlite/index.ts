@@ -5,14 +5,14 @@ import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
 import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
 import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
+import { HiveWorkerConfig } from "@withonevision/omnihive-core/models/HiveWorkerConfig";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { HiveWorkerMetadataConfigDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataConfigDatabase";
 import fse from "fs-extra";
 import knex, { Knex } from "knex";
 import { serializeError } from "serialize-error";
 import sqlite from "sqlite3";
-import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
+import { ServerConfig } from "@withonevision/omnihive-core/models/ServerConfig";
 
 export class SqliteWorkerMetadata extends HiveWorkerMetadataConfigDatabase {
     public filename: string = "";
@@ -20,7 +20,7 @@ export class SqliteWorkerMetadata extends HiveWorkerMetadataConfigDatabase {
 
 export default class SqliteConfigWorker extends HiveWorkerBase implements IConfigWorker {
     public connection!: Knex;
-    private metadata!: SqliteWorkerMetadata;
+    private typedMetadata!: SqliteWorkerMetadata;
 
     private configId: number = 0;
 
@@ -28,8 +28,8 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        const sqliteMetadata: SqliteWorkerMetadata = config.metadata as SqliteWorkerMetadata;
+    public async init(name: string, metadata?: any): Promise<void> {
+        const sqliteMetadata: SqliteWorkerMetadata = metadata as SqliteWorkerMetadata;
 
         sqliteMetadata.password = "";
         sqliteMetadata.requireSsl = false;
@@ -39,10 +39,10 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
         sqliteMetadata.userName = "";
 
         try {
-            await AwaitHelper.execute(super.init(config));
-            this.metadata = this.checkObjectStructure<SqliteWorkerMetadata>(SqliteWorkerMetadata, sqliteMetadata);
+            await AwaitHelper.execute(super.init(name, metadata));
+            this.typedMetadata = this.checkObjectStructure<SqliteWorkerMetadata>(SqliteWorkerMetadata, sqliteMetadata);
 
-            const filePath = global.omnihive.getFilePath(this.metadata.filename);
+            const filePath = global.omnihive.getFilePath(this.typedMetadata.filename);
 
             if (!fse.existsSync(filePath)) {
                 throw new Error("SQLite database cannot be found");
@@ -52,7 +52,7 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
                 client: "sqlite3",
                 useNullAsDefault: true,
                 connection: {
-                    filename: this.metadata.filename,
+                    filename: this.typedMetadata.filename,
                 },
             };
             this.connection = knex(connectionOptions);
@@ -61,12 +61,12 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
         }
     }
 
-    public get = async (): Promise<AppSettings> => {
+    public get = async (): Promise<ServerConfig> => {
         const srvConfigBaseSql = `
             SELECT   config_id
                     ,config_name
             FROM oh_srv_config_base 
-            WHERE config_name = '${this.metadata.configName}'`;
+            WHERE config_name = '${this.typedMetadata.configName}'`;
 
         const srvConfigEnvironmentSql = `
             SELECT   e.config_id
@@ -76,7 +76,7 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
             FROM oh_srv_config_environment e
                 INNER JOIN oh_srv_config_base b
                     on e.config_id = b.config_id
-            WHERE b.config_name = '${this.metadata.configName}'`;
+            WHERE b.config_name = '${this.typedMetadata.configName}'`;
 
         const srvConfigWorkersSql = `
             SELECT   w.config_id
@@ -91,7 +91,7 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
             FROM oh_srv_config_workers w
                 INNER JOIN oh_srv_config_base b
                     on w.config_id = b.config_id
-            WHERE b.config_name = '${this.metadata.configName}'`;
+            WHERE b.config_name = '${this.typedMetadata.configName}'`;
 
         const results = await AwaitHelper.execute(
             Promise.all([
@@ -101,14 +101,14 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
             ])
         );
 
-        const appSettings: AppSettings = new AppSettings();
+        const serverConfig: ServerConfig = new ServerConfig();
 
         this.configId = +results[0][0][0].config_id;
 
         results[1][0].forEach((row) => {
             switch (row.environment_datatype) {
                 case "number":
-                    appSettings.environmentVariables.push({
+                    serverConfig.environmentVariables.push({
                         key: row.environment_key,
                         value: Number(row.environment_value),
                         type: EnvironmentVariableType.Number,
@@ -116,7 +116,7 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
                     });
                     break;
                 case "boolean":
-                    appSettings.environmentVariables.push({
+                    serverConfig.environmentVariables.push({
                         key: row.environment_key,
                         value: row.environment_value === "true",
                         type: EnvironmentVariableType.Boolean,
@@ -124,7 +124,7 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
                     });
                     break;
                 default:
-                    appSettings.environmentVariables.push({
+                    serverConfig.environmentVariables.push({
                         key: row.environment_key,
                         value: String(row.environment_value),
                         type: EnvironmentVariableType.String,
@@ -135,7 +135,7 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
         });
 
         results[2][0].forEach((row) => {
-            appSettings.workers.push({
+            serverConfig.workers.push({
                 name: row.worker_name,
                 type: row.worker_type,
                 package: row.worker_package,
@@ -147,18 +147,18 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
             });
         });
 
-        return appSettings;
+        return serverConfig;
     };
 
-    public set = async (settings: AppSettings): Promise<boolean> => {
-        const currentSettings: AppSettings = await this.get();
+    public set = async (serverConfig: ServerConfig): Promise<boolean> => {
+        const currentSettings: ServerConfig = await this.get();
 
-        const database = new sqlite.Database(this.metadata.filename);
+        const database = new sqlite.Database(this.typedMetadata.filename);
         database.serialize(() => {
             database.run("BEGIN");
 
             try {
-                for (let variable of settings.environmentVariables.filter((value) => !value.isSystem)) {
+                for (let variable of serverConfig.environmentVariables.filter((value) => !value.isSystem)) {
                     const queryBuilder = new StringBuilder();
                     queryBuilder.appendLine(
                         `INSERT INTO oh_srv_config_environment(config_id, environment_key, environment_value, environment_datatype)`
@@ -181,7 +181,7 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
                     );
                 }
 
-                for (let worker of settings.workers) {
+                for (let worker of serverConfig.workers) {
                     const upsertWorkersSql = `
                         INSERT INTO oh_srv_config_workers(
                             config_id, 
@@ -217,7 +217,9 @@ export default class SqliteConfigWorker extends HiveWorkerBase implements IConfi
 
                     database.run(upsertWorkersSql);
 
-                    const filteredWorkers = currentSettings.workers.filter((hw: HiveWorker) => hw.name !== worker.name);
+                    const filteredWorkers = currentSettings.workers.filter(
+                        (hw: HiveWorkerConfig) => hw.name !== worker.name
+                    );
                     currentSettings.workers = filteredWorkers;
                 }
 

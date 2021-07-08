@@ -1,7 +1,6 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IPubSubServerWorker } from "@withonevision/omnihive-core/interfaces/IPubSubServerWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { PubSubListener } from "@withonevision/omnihive-core/models/PubSubListener";
 import { serializeError } from "serialize-error";
@@ -19,16 +18,13 @@ export default class SocketIoPubSubServerWorker extends HiveWorkerBase implement
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
-        const metadata: SocketIoPubSubServerWorkerMetadata =
-            this.checkObjectStructure<SocketIoPubSubServerWorkerMetadata>(
-                SocketIoPubSubServerWorkerMetadata,
-                this.config.metadata
-            );
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
+        const typedMetadata: SocketIoPubSubServerWorkerMetadata =
+            this.checkObjectStructure<SocketIoPubSubServerWorkerMetadata>(SocketIoPubSubServerWorkerMetadata, metadata);
 
         this.ioServer = new socketio.Server();
-        this.ioServer.listen(metadata.port);
+        this.ioServer.listen(typedMetadata.port);
 
         this.ioServer.on("connection", (socket: socketio.Socket) => {
             socket.on("join-room", (room: string) => {

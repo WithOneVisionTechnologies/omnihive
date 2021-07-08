@@ -5,7 +5,6 @@ import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { IUserWorker } from "@withonevision/omnihive-core/interfaces/IUserWorker";
 import { AuthUser } from "@withonevision/omnihive-core/models/AuthUser";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 
 import {
@@ -29,7 +28,7 @@ export class AuthZeroUserWorkerMetadata {
 }
 
 export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserWorker {
-    private metadata!: AuthZeroUserWorkerMetadata;
+    private typedMetadata!: AuthZeroUserWorkerMetadata;
     private authClient!: AuthenticationClient;
     private managementClient!: ManagementClient;
 
@@ -37,25 +36,25 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
+    public async init(name: string, metadata?: any): Promise<void> {
         try {
-            await AwaitHelper.execute(super.init(config));
+            await AwaitHelper.execute(super.init(name, metadata));
 
-            this.metadata = this.checkObjectStructure<AuthZeroUserWorkerMetadata>(
+            this.typedMetadata = this.checkObjectStructure<AuthZeroUserWorkerMetadata>(
                 AuthZeroUserWorkerMetadata,
-                config.metadata
+                metadata
             );
 
             this.authClient = new AuthenticationClient({
-                domain: this.metadata.domain,
-                clientId: this.metadata.clientId,
-                clientSecret: this.metadata.clientSecret,
+                domain: this.typedMetadata.domain,
+                clientId: this.typedMetadata.clientId,
+                clientSecret: this.typedMetadata.clientSecret,
             });
 
             this.managementClient = new ManagementClient({
-                domain: this.metadata.domain,
-                clientId: this.metadata.clientId,
-                clientSecret: this.metadata.clientSecret,
+                domain: this.typedMetadata.domain,
+                clientId: this.typedMetadata.clientId,
+                clientSecret: this.typedMetadata.clientSecret,
                 scope: "read:users update:users delete:users",
             });
         } catch (err) {
@@ -72,7 +71,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
 
         try {
             const authUser: AuthUser = new AuthUser();
-            const createUserData: CreateUserData = { connection: this.metadata.connection, email, password };
+            const createUserData: CreateUserData = { connection: this.typedMetadata.connection, email, password };
 
             await AwaitHelper.execute(this.managementClient.createUser(createUserData));
             authUser.email = email;
@@ -182,7 +181,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
 
         try {
             const databaseLoginData: PasswordGrantOptions = {
-                realm: this.metadata.connection,
+                realm: this.typedMetadata.connection,
                 username: email,
                 password,
             };
@@ -203,7 +202,7 @@ export default class AuthZeroUserWorker extends HiveWorkerBase implements IUserW
 
         const logWorker: ILogWorker | undefined = this.getWorker<ILogWorker | undefined>(HiveWorkerType.Log);
 
-        const changePasswordData: ResetPasswordEmailOptions = { email, connection: this.metadata.connection };
+        const changePasswordData: ResetPasswordEmailOptions = { email, connection: this.typedMetadata.connection };
 
         try {
             await AwaitHelper.execute(this.authClient.requestChangePasswordEmail(changePasswordData));

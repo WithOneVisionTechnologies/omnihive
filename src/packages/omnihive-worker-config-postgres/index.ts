@@ -1,6 +1,6 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
+import { HiveWorkerConfig } from "@withonevision/omnihive-core/models/HiveWorkerConfig";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import fse from "fs-extra";
 import { serializeError } from "serialize-error";
@@ -10,14 +10,14 @@ import { HiveWorkerMetadataConfigDatabase } from "@withonevision/omnihive-core/m
 import { EnvironmentVariableType } from "@withonevision/omnihive-core/enums/EnvironmentVariableType";
 import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
 import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
-import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
+import { ServerConfig } from "@withonevision/omnihive-core/models/ServerConfig";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 
 export default class PostgresConfigWorker extends HiveWorkerBase implements IConfigWorker {
     public connection!: Knex;
     private connectionPool!: pg.Pool;
     private sqlConfig!: any;
-    private metadata!: HiveWorkerMetadataConfigDatabase;
+    private typedMetadata!: HiveWorkerMetadataConfigDatabase;
 
     private configId: number = 0;
 
@@ -25,32 +25,32 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
+    public async init(name: string, metadata?: any): Promise<void> {
         try {
-            await AwaitHelper.execute(super.init(config));
-            this.metadata = this.checkObjectStructure<HiveWorkerMetadataConfigDatabase>(
+            await AwaitHelper.execute(super.init(name, metadata));
+            this.typedMetadata = this.checkObjectStructure<HiveWorkerMetadataConfigDatabase>(
                 HiveWorkerMetadataConfigDatabase,
-                config.metadata
+                metadata
             );
 
-            if (IsHelper.isEmptyStringOrWhitespace(this.metadata.configName)) {
+            if (IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.configName)) {
                 throw new Error("No config name set to retrieve");
             }
 
             this.sqlConfig = {
-                host: this.metadata.serverAddress,
-                port: this.metadata.serverPort,
-                database: this.metadata.databaseName,
-                user: this.metadata.userName,
-                password: this.metadata.password,
+                host: this.typedMetadata.serverAddress,
+                port: this.typedMetadata.serverPort,
+                database: this.typedMetadata.databaseName,
+                user: this.typedMetadata.userName,
+                password: this.typedMetadata.password,
             };
 
-            if (this.metadata.requireSsl) {
-                if (IsHelper.isEmptyStringOrWhitespace(this.metadata.sslCertPath)) {
-                    this.sqlConfig.ssl = this.metadata.requireSsl;
+            if (this.typedMetadata.requireSsl) {
+                if (IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.sslCertPath)) {
+                    this.sqlConfig.ssl = this.typedMetadata.requireSsl;
                 } else {
                     this.sqlConfig.ssl = {
-                        ca: fse.readFileSync(this.metadata.sslCertPath).toString(),
+                        ca: fse.readFileSync(this.typedMetadata.sslCertPath).toString(),
                     };
                 }
             }
@@ -70,12 +70,12 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
         }
     }
 
-    public get = async (): Promise<AppSettings> => {
+    public get = async (): Promise<ServerConfig> => {
         const srvConfigBaseSql = `
             SELECT   config_id
                     ,config_name
             FROM oh_srv_config_base 
-            WHERE config_name = '${this.metadata.configName}'`;
+            WHERE config_name = '${this.typedMetadata.configName}'`;
 
         const srvConfigEnvironmentSql = `
             SELECT   e.config_id
@@ -85,7 +85,7 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
             FROM oh_srv_config_environment e
                 INNER JOIN oh_srv_config_base b
                     on e.config_id = b.config_id
-            WHERE b.config_name = '${this.metadata.configName}'`;
+            WHERE b.config_name = '${this.typedMetadata.configName}'`;
 
         const srvConfigWorkersSql = `
             SELECT   w.config_id
@@ -100,7 +100,7 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
             FROM oh_srv_config_workers w
                 INNER JOIN oh_srv_config_base b
                     on w.config_id = b.config_id
-            WHERE b.config_name = '${this.metadata.configName}'`;
+            WHERE b.config_name = '${this.typedMetadata.configName}'`;
 
         const results = await AwaitHelper.execute(
             Promise.all([
@@ -110,14 +110,14 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
             ])
         );
 
-        const appSettings: AppSettings = new AppSettings();
+        const serverConfig: ServerConfig = new ServerConfig();
 
         this.configId = +results[0][0][0].config_id;
 
         results[1][0].forEach((row) => {
             switch (row.environment_datatype) {
                 case "number":
-                    appSettings.environmentVariables.push({
+                    serverConfig.environmentVariables.push({
                         key: row.environment_key,
                         value: Number(row.environment_value),
                         type: EnvironmentVariableType.Number,
@@ -125,7 +125,7 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
                     });
                     break;
                 case "boolean":
-                    appSettings.environmentVariables.push({
+                    serverConfig.environmentVariables.push({
                         key: row.environment_key,
                         value: row.environment_value === "true",
                         type: EnvironmentVariableType.Boolean,
@@ -133,7 +133,7 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
                     });
                     break;
                 default:
-                    appSettings.environmentVariables.push({
+                    serverConfig.environmentVariables.push({
                         key: row.environment_key,
                         value: String(row.environment_value),
                         type: EnvironmentVariableType.String,
@@ -144,7 +144,7 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
         });
 
         results[2][0].forEach((row) => {
-            appSettings.workers.push({
+            serverConfig.workers.push({
                 name: row.worker_name,
                 type: row.worker_type,
                 package: row.worker_package,
@@ -156,11 +156,11 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
             });
         });
 
-        return appSettings;
+        return serverConfig;
     };
 
-    public set = async (settings: AppSettings): Promise<boolean> => {
-        const currentSettings: AppSettings = await this.get();
+    public set = async (settings: ServerConfig): Promise<boolean> => {
+        const currentSettings: ServerConfig = await this.get();
 
         const client = await AwaitHelper.execute(this.connectionPool.connect());
 
@@ -226,7 +226,9 @@ export default class PostgresConfigWorker extends HiveWorkerBase implements ICon
 
                 await AwaitHelper.execute(client.query(upsertWorkersSql));
 
-                const filteredWorkers = currentSettings.workers.filter((hw: HiveWorker) => hw.name !== worker.name);
+                const filteredWorkers = currentSettings.workers.filter(
+                    (hw: HiveWorkerConfig) => hw.name !== worker.name
+                );
                 currentSettings.workers = filteredWorkers;
             }
 

@@ -7,7 +7,6 @@ import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilde
 import { IDatabaseWorker } from "@withonevision/omnihive-core/interfaces/IDatabaseWorker";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
 import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { HiveWorkerMetadataDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataDatabase";
 import { ProcFunctionSchema } from "@withonevision/omnihive-core/models/ProcFunctionSchema";
@@ -24,43 +23,43 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
     public connection!: Knex;
     private connectionPool!: pg.Pool;
     private sqlConfig!: any;
-    private metadata!: HiveWorkerMetadataDatabase;
+    private typedMetadata!: HiveWorkerMetadataDatabase;
 
     constructor() {
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
+    public async init(name: string, metadata?: any): Promise<void> {
         try {
-            await AwaitHelper.execute(super.init(config));
-            this.metadata = this.checkObjectStructure<HiveWorkerMetadataDatabase>(
+            await AwaitHelper.execute(super.init(name, metadata));
+            this.typedMetadata = this.checkObjectStructure<HiveWorkerMetadataDatabase>(
                 HiveWorkerMetadataDatabase,
-                config.metadata
+                metadata
             );
 
             this.sqlConfig = {
-                host: this.metadata.serverAddress,
-                port: this.metadata.serverPort,
-                database: this.metadata.databaseName,
-                user: this.metadata.userName,
-                password: this.metadata.password,
+                host: this.typedMetadata.serverAddress,
+                port: this.typedMetadata.serverPort,
+                database: this.typedMetadata.databaseName,
+                user: this.typedMetadata.userName,
+                password: this.typedMetadata.password,
             };
 
-            if (this.metadata.requireSsl) {
+            if (this.typedMetadata.requireSsl) {
                 if (
-                    !IsHelper.isEmptyStringOrWhitespace(this.metadata.sslCertPath) &&
-                    fse.existsSync(this.metadata.sslCertPath)
+                    !IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.sslCertPath) &&
+                    fse.existsSync(this.typedMetadata.sslCertPath)
                 ) {
                     this.sqlConfig.ssl = {
-                        ca: fse.readFileSync(this.metadata.sslCertPath).toString(),
+                        ca: fse.readFileSync(this.typedMetadata.sslCertPath).toString(),
                     };
                 } else {
-                    if (fse.existsSync(path.join(__dirname, this.metadata.sslCertPath))) {
+                    if (fse.existsSync(path.join(__dirname, this.typedMetadata.sslCertPath))) {
                         this.sqlConfig.ssl = {
-                            ca: fse.readFileSync(this.metadata.sslCertPath).toString(),
+                            ca: fse.readFileSync(this.typedMetadata.sslCertPath).toString(),
                         };
                     } else {
-                        throw new Error(`Cannot find a ssl certification for ${this.config.name}`);
+                        throw new Error(`Cannot find a ssl certification for ${this.name}`);
                     }
                 }
             }
@@ -70,7 +69,7 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
 
             const connectionOptions: Knex.Config = {
                 connection: {},
-                pool: { min: 0, max: this.metadata.connectionPoolLimit },
+                pool: { min: 0, max: this.typedMetadata.connectionPoolLimit },
             };
             connectionOptions.client = "pg";
             connectionOptions.connection = this.sqlConfig;
@@ -146,7 +145,7 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
 
     public getSchema = async (): Promise<ConnectionSchema> => {
         const result: ConnectionSchema = {
-            workerName: this.config.name,
+            workerName: this.name,
             tables: [],
             procFunctions: [],
         };
@@ -155,11 +154,11 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
         const logWorker: ILogWorker | undefined = this.getWorker<ILogWorker | undefined>(HiveWorkerType.Log);
 
         try {
-            const tableFilePath = global.omnihive.getFilePath(this.metadata.getSchemaSqlFile);
+            const tableFilePath = global.omnihive.getFilePath(this.typedMetadata.getSchemaSqlFile);
 
             if (
-                !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
-                !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile) &&
+                !IsHelper.isNullOrUndefined(this.typedMetadata.getSchemaSqlFile) &&
+                !IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.getSchemaSqlFile) &&
                 fse.existsSync(tableFilePath)
             ) {
                 tableResult = await AwaitHelper.execute(
@@ -167,8 +166,8 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
                 );
             } else {
                 if (
-                    !IsHelper.isNullOrUndefined(this.metadata.getSchemaSqlFile) &&
-                    !IsHelper.isEmptyStringOrWhitespace(this.metadata.getSchemaSqlFile)
+                    !IsHelper.isNullOrUndefined(this.typedMetadata.getSchemaSqlFile) &&
+                    !IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.getSchemaSqlFile)
                 ) {
                     logWorker?.write(OmniHiveLogLevel.Warn, "Provided Schema SQL File is not found.");
                 }
@@ -177,7 +176,7 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
                         this.executeQuery(fse.readFileSync(path.join(__dirname, "defaultTables.sql"), "utf8"), true)
                     );
                 } else {
-                    throw new Error(`Cannot find a table executor for ${this.config.name}`);
+                    throw new Error(`Cannot find a table executor for ${this.name}`);
                 }
             }
         } catch (err) {
@@ -185,18 +184,18 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
         }
 
         try {
-            const procFilePath = global.omnihive.getFilePath(this.metadata.getProcFunctionSqlFile);
+            const procFilePath = global.omnihive.getFilePath(this.typedMetadata.getProcFunctionSqlFile);
 
             if (
-                !IsHelper.isNullOrUndefined(this.metadata.getProcFunctionSqlFile) &&
-                !IsHelper.isEmptyStringOrWhitespace(this.metadata.getProcFunctionSqlFile) &&
+                !IsHelper.isNullOrUndefined(this.typedMetadata.getProcFunctionSqlFile) &&
+                !IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.getProcFunctionSqlFile) &&
                 fse.existsSync(procFilePath)
             ) {
                 procResult = await AwaitHelper.execute(this.executeQuery(fse.readFileSync(procFilePath, "utf8"), true));
             } else {
                 if (
-                    !IsHelper.isNullOrUndefined(this.metadata.getProcFunctionSqlFile) &&
-                    !IsHelper.isEmptyStringOrWhitespace(this.metadata.getProcFunctionSqlFile)
+                    !IsHelper.isNullOrUndefined(this.typedMetadata.getProcFunctionSqlFile) &&
+                    !IsHelper.isEmptyStringOrWhitespace(this.typedMetadata.getProcFunctionSqlFile)
                 ) {
                     logWorker?.write(OmniHiveLogLevel.Warn, "Provided Proc SQL File is not found.");
                 }
@@ -208,7 +207,7 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
                         )
                     );
                 } else {
-                    throw new Error(`Cannot find a proc executor for ${this.config.name}`);
+                    throw new Error(`Cannot find a proc executor for ${this.name}`);
                 }
             }
         } catch (err) {
@@ -217,9 +216,9 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
 
         tableResult[tableResult.length - 1].forEach((row) => {
             if (
-                !this.metadata.ignoreSchema &&
-                !this.metadata.schemas.includes("*") &&
-                !this.metadata.schemas.includes(row.schema_name)
+                !this.typedMetadata.ignoreSchema &&
+                !this.typedMetadata.schemas.includes("*") &&
+                !this.typedMetadata.schemas.includes(row.schema_name)
             ) {
                 return;
             }
@@ -244,9 +243,9 @@ export default class PostgresDatabaseWorker extends HiveWorkerBase implements ID
 
         procResult[procResult.length - 1].forEach((row) => {
             if (
-                !this.metadata.ignoreSchema &&
-                !this.metadata.schemas.includes("*") &&
-                !this.metadata.schemas.includes(row.procfunc_schema)
+                !this.typedMetadata.ignoreSchema &&
+                !this.typedMetadata.schemas.includes("*") &&
+                !this.typedMetadata.schemas.includes(row.procfunc_schema)
             ) {
                 return;
             }

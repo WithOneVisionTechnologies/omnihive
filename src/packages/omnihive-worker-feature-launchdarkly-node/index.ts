@@ -4,7 +4,6 @@ import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IFeatureWorker } from "@withonevision/omnihive-core/interfaces/IFeatureWorker";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import LaunchDarkly, { LDUser } from "launchdarkly-node-server-sdk";
 import { serializeError } from "serialize-error";
@@ -41,27 +40,27 @@ export default class LaunchDarklyNodeFeatureWorker extends HiveWorkerBase implem
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
+    public async init(name: string, metadata?: any): Promise<void> {
         try {
-            await AwaitHelper.execute(super.init(config));
-            const metadata: LaunchDarklyNodeFeatureWorkerMetadata =
+            await AwaitHelper.execute(super.init(name, metadata));
+            const typedMetadata: LaunchDarklyNodeFeatureWorkerMetadata =
                 this.checkObjectStructure<LaunchDarklyNodeFeatureWorkerMetadata>(
                     LaunchDarklyNodeFeatureWorkerMetadata,
-                    config.metadata
+                    metadata
                 );
 
-            const ldInstance: LaunchDarkly.LDClient = LaunchDarkly.init(metadata.sdkKey);
+            const ldInstance: LaunchDarkly.LDClient = LaunchDarkly.init(typedMetadata.sdkKey);
 
             const featureClient: LaunchDarklyFeatureClient = {
-                clientSideId: metadata.clientSideId,
-                mobileKey: metadata.mobileKey,
-                project: metadata.project,
-                sdkKey: metadata.sdkKey,
+                clientSideId: typedMetadata.clientSideId,
+                mobileKey: typedMetadata.mobileKey,
+                project: typedMetadata.project,
+                sdkKey: typedMetadata.sdkKey,
                 instance: ldInstance,
                 ready: false,
             };
-            this.user = { key: metadata.user };
-            this.project = metadata.project;
+            this.user = { key: typedMetadata.user };
+            this.project = typedMetadata.project;
 
             featureClient.instance.on("ready", () => {
                 featureClient.ready = true;

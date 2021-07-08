@@ -3,7 +3,6 @@ import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IEncryptionWorker } from "@withonevision/omnihive-core/interfaces/IEncryptionWorker";
 import { IStorageWorker } from "@withonevision/omnihive-core/interfaces/IStorageWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { CrossStorageClient, CrossStorageClientOptions } from "cross-storage";
 
@@ -14,21 +13,21 @@ export class CrossStorageStorageWorkerMetadata {
 
 export default class CrossStorageWorker extends HiveWorkerBase implements IStorageWorker {
     private storageClient: CrossStorageClient | undefined = undefined;
-    private metadata!: CrossStorageStorageWorkerMetadata;
+    private typedMetadata!: CrossStorageStorageWorkerMetadata;
 
     constructor() {
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
-        this.metadata = this.checkObjectStructure<CrossStorageStorageWorkerMetadata>(
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
+        this.typedMetadata = this.checkObjectStructure<CrossStorageStorageWorkerMetadata>(
             CrossStorageStorageWorkerMetadata,
-            config.metadata
+            metadata
         );
 
         const options: CrossStorageClientOptions = {};
-        const storage = new CrossStorageClient(this.metadata.hubLocation, options);
+        const storage = new CrossStorageClient(this.typedMetadata.hubLocation, options);
         this.storageClient = storage;
     }
 
@@ -54,7 +53,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
                     }
 
                     this.storageClient
-                        .get(`${this.metadata.keyPrefix}::${key}`)
+                        .get(`${this.typedMetadata.keyPrefix}::${key}`)
                         .then((_res: string) => resolve(true))
                         .catch(() => resolve(false));
                 })
@@ -88,7 +87,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
                     }
 
                     this.storageClient
-                        .get(`${this.metadata.keyPrefix}::${key}`)
+                        .get(`${this.typedMetadata.keyPrefix}::${key}`)
                         .then((res: string) => {
                             // Get the value and decrypt it
                             const decrypted: string = encryptionWorker.symmetricDecrypt(res);
@@ -120,7 +119,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
                     }
 
                     this.storageClient
-                        .del(`${this.metadata.keyPrefix}::${key}`)
+                        .del(`${this.typedMetadata.keyPrefix}::${key}`)
                         .then(() => resolve(true))
                         .catch(() => resolve(false));
                 })
@@ -163,7 +162,7 @@ export default class CrossStorageWorker extends HiveWorkerBase implements IStora
 
                     // Set the item
                     this.storageClient
-                        .set(`${this.metadata.keyPrefix}::${key}`, encrypted)
+                        .set(`${this.typedMetadata.keyPrefix}::${key}`, encrypted)
                         .then(() => resolve(true))
                         .catch(() => resolve(false));
                 })

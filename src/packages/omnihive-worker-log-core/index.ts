@@ -32,7 +32,7 @@ export default class LogWorkerServerDefault extends HiveWorkerBase implements IL
 
         const logWorkers: RegisteredHiveWorker[] = global.omnihive.registeredWorkers.filter(
             (value: RegisteredHiveWorker) => {
-                return value.enabled && value.type === HiveWorkerType.Log && value.name !== "__ohBootLogWorker";
+                return value.type === HiveWorkerType.Log && value.name !== "__ohBootLogWorker";
             }
         );
 

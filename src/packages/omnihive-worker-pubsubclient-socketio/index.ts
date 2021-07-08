@@ -1,7 +1,6 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IPubSubClientWorker } from "@withonevision/omnihive-core/interfaces/IPubSubClientWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { PubSubListener } from "@withonevision/omnihive-core/models/PubSubListener";
 import { serializeError } from "serialize-error";
@@ -17,19 +16,19 @@ export default class SocketIoPubSubClientWorker extends HiveWorkerBase implement
     private ioClient!: socketio.Socket;
     private listeners: PubSubListener[] = [];
     private rooms: string[] = [];
-    private metadata!: SocketIoPubSubClientWorkerMetadata;
+    private typedMetadata!: SocketIoPubSubClientWorkerMetadata;
 
     constructor() {
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
-        this.metadata = this.checkObjectStructure<SocketIoPubSubClientWorkerMetadata>(
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
+        this.typedMetadata = this.checkObjectStructure<SocketIoPubSubClientWorkerMetadata>(
             SocketIoPubSubClientWorkerMetadata,
-            this.config.metadata
+            metadata
         );
-        this.ioClient = socketio.io({ path: this.metadata.serverUrl });
+        this.ioClient = socketio.io({ path: this.typedMetadata.serverUrl });
 
         this.ioClient.on("connect", () => {
             this.connect();
@@ -114,7 +113,7 @@ export default class SocketIoPubSubClientWorker extends HiveWorkerBase implement
             this.ioClient.connect();
             this.connected = true;
         } catch (err) {
-            if (retry <= this.metadata.maxRetries) {
+            if (retry <= this.typedMetadata.maxRetries) {
                 this.connect(retry++);
             } else {
                 throw new Error("The maximum amount of retries to connect has been reached.");

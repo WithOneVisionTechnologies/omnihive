@@ -1,6 +1,6 @@
 {
     "name": "@withonevision/omnihive-worker-config-yaml",
-    "version": "6.2.33",
+    "version": "6.2.45",
     "description": "OmniHive YAML Config Worker",
     "license": "MIT",
     "author": {

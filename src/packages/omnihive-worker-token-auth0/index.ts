@@ -1,7 +1,6 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { ITokenWorker } from "@withonevision/omnihive-core/interfaces/ITokenWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { AuthenticationClient, ClientCredentialsGrantOptions } from "auth0";
 import axios, { AxiosResponse } from "axios";
@@ -18,7 +17,7 @@ export class AuthZeroTokenWorkerMetadata {
 }
 
 export default class AuthZeroTokenWorker extends HiveWorkerBase implements ITokenWorker {
-    private metadata!: AuthZeroTokenWorkerMetadata;
+    private typedMetadata!: AuthZeroTokenWorkerMetadata;
     private token: string = "";
     private authClient!: AuthenticationClient;
 
@@ -26,18 +25,18 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
 
-        this.metadata = this.checkObjectStructure<AuthZeroTokenWorkerMetadata>(
+        this.typedMetadata = this.checkObjectStructure<AuthZeroTokenWorkerMetadata>(
             AuthZeroTokenWorkerMetadata,
-            config.metadata
+            metadata
         );
 
         this.authClient = new AuthenticationClient({
-            domain: this.metadata.domain,
-            clientId: this.metadata.clientId,
-            clientSecret: this.metadata.clientSecret,
+            domain: this.typedMetadata.domain,
+            clientId: this.typedMetadata.clientId,
+            clientSecret: this.typedMetadata.clientSecret,
         });
     }
 
@@ -48,11 +47,11 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
             }
 
             const options: ClientCredentialsGrantOptions = {
-                audience: this.metadata.audience,
+                audience: this.typedMetadata.audience,
             };
 
             this.token = (await AwaitHelper.execute(this.authClient.clientCredentialsGrant(options))).access_token;
-            this.token = `${this.metadata.clientId}||${this.token}`;
+            this.token = `${this.typedMetadata.clientId}||${this.token}`;
             return this.token;
         } catch (err) {
             throw new Error(`[ohAccessError] Get Token Error => ${JSON.stringify(serializeError(err))}`);
@@ -78,7 +77,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
     };
 
     public verify = async (token: string): Promise<boolean> => {
-        if (!this.metadata.verifyOn) {
+        if (!this.typedMetadata.verifyOn) {
             return true;
         }
 
@@ -100,7 +99,7 @@ export default class AuthZeroTokenWorker extends HiveWorkerBase implements IToke
         let jwks: AxiosResponse<any>;
 
         try {
-            jwks = await AwaitHelper.execute(axios.get(`https://${this.metadata.domain}/.well-known/jwks.json`));
+            jwks = await AwaitHelper.execute(axios.get(`https://${this.typedMetadata.domain}/.well-known/jwks.json`));
         } catch (e) {
             throw new Error("[ohAccessError] JWKS Url Not Responding");
         }

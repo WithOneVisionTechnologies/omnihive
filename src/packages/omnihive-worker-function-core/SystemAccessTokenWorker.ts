@@ -6,12 +6,12 @@ import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBa
 import { RestEndpointExecuteResponse } from "@withonevision/omnihive-core/models/RestEndpointExecuteResponse";
 import { serializeError } from "serialize-error";
 import swaggerUi from "swagger-ui-express";
-import isEqual from "lodash.isequal";
-import objectHash from "object-hash";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
+import { IEncryptionWorker } from "@withonevision/omnihive-core/interfaces/IEncryptionWorker";
 
 export default class SystemAccessTokenWorker extends HiveWorkerBase implements IRestEndpointWorker {
     private tokenWorker!: ITokenWorker;
+    private encryptionWorker!: IEncryptionWorker;
 
     constructor() {
         super();
@@ -24,6 +24,15 @@ export default class SystemAccessTokenWorker extends HiveWorkerBase implements I
         }
 
         this.tokenWorker = tokenWorker;
+
+        const encryptionWorker: IEncryptionWorker | undefined = this.getWorker<IEncryptionWorker>(
+            HiveWorkerType.Encryption
+        );
+        if (IsHelper.isNullOrUndefined(encryptionWorker)) {
+            throw new Error("Encryption Worker cannot be found");
+        }
+
+        this.encryptionWorker = encryptionWorker;
 
         try {
             this.checkRequest(body);
@@ -88,19 +97,13 @@ export default class SystemAccessTokenWorker extends HiveWorkerBase implements I
             throw new Error("Request must have parameters");
         }
 
-        if (
-            IsHelper.isNullOrUndefined(this.tokenWorker) ||
-            IsHelper.isNullOrUndefined(this.tokenWorker.config.metadata)
-        ) {
+        if (IsHelper.isNullOrUndefined(this.tokenWorker) || IsHelper.isNullOrUndefined(this.tokenWorker.metadata)) {
             throw new Error("A token worker cannot be found");
         }
 
-        const hashedConfigMetadata = objectHash(this.tokenWorker.config.metadata, {
-            algorithm: this.tokenWorker.config.metadata.hashAlgorithm,
-            respectType: false,
-        });
+        const encryptedMetadata = this.encryptionWorker.symmetricEncrypt(JSON.stringify(this.tokenWorker.metadata));
 
-        if (!isEqual(hashedConfigMetadata, body.generator)) {
+        if (body.generator !== encryptedMetadata) {
             throw new Error("Token cannot be generated");
         }
     };

@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 6.2.45 (2021-06-28)
+
+### 6.2.44 (2021-06-28)
+
+### 6.2.43 (2021-06-28)
+
+### 6.2.42 (2021-06-27)
+
+### 6.2.41 (2021-06-25)
+
+### 6.2.40 (2021-06-25)
+
+
+### Bug Fixes
+
+* **worker:** decrypt failing ([8239836](https://github.com/WithOneVisionTechnologies/omnihive/commit/82398366d5b7f01da98a55dc4ddb7afa901cbb5e))
+
+### 6.2.39 (2021-06-25)
+
+
+### Bug Fixes
+
+* **omnihive:** bad boolean comparison ([07c1f2b](https://github.com/WithOneVisionTechnologies/omnihive/commit/07c1f2bcf3761ce361f1d4c831a3788822c0d540))
+
+### 6.2.38 (2021-06-25)
+
+### 6.2.37 (2021-06-25)
+
+### 6.2.36 (2021-06-24)
+
+### 6.2.35 (2021-06-24)
+
+
+### Code Maitenance
+
+* **release:** 6.2.34 ([9d034c4](https://github.com/WithOneVisionTechnologies/omnihive/commit/9d034c47eff04e5ccd929e570a635ce3eab9fa07))
+
+### 6.2.34 (2021-06-24)
+
 ### 6.2.33 (2021-06-15)
 
 ### 6.2.32 (2021-06-14)

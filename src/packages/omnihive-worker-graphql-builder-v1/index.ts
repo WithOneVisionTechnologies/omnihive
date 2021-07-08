@@ -6,7 +6,6 @@ import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilde
 import { IDatabaseWorker } from "@withonevision/omnihive-core/interfaces/IDatabaseWorker";
 import { IGraphBuildWorker } from "@withonevision/omnihive-core/interfaces/IGraphBuildWorker";
 import { ConnectionSchema } from "@withonevision/omnihive-core/models/ConnectionSchema";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { HiveWorkerMetadataGraphBuilder } from "@withonevision/omnihive-core/models/HiveWorkerMetadataGraphBuilder";
 import { HiveWorkerMetadataLifecycleFunction } from "@withonevision/omnihive-core/models/HiveWorkerMetadataLifecycleFunction";
@@ -18,15 +17,16 @@ import pluralize from "pluralize";
 import { GraphHelper } from "./helpers/GraphHelper";
 import { HiveWorkerMetadataDatabase } from "@withonevision/omnihive-core/models/HiveWorkerMetadataDatabase";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
+import { HiveWorkerConfig } from "@withonevision/omnihive-core/models/HiveWorkerConfig";
 
 export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildWorker {
     constructor() {
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
-        this.checkObjectStructure<HiveWorkerMetadataGraphBuilder>(HiveWorkerMetadataGraphBuilder, config.metadata);
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
+        this.checkObjectStructure<HiveWorkerMetadataGraphBuilder>(HiveWorkerMetadataGraphBuilder, metadata);
     }
 
     public buildDatabaseWorkerSchema = (
@@ -37,19 +37,15 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             throw new Error("Connection Schema is Undefined.");
         }
 
-        const enabledWorkers: RegisteredHiveWorker[] = this.registeredWorkers.filter(
-            (rw: RegisteredHiveWorker) => rw.enabled
-        );
-
         let tables: TableSchema[];
 
-        if ((databaseWorker.config.metadata as HiveWorkerMetadataDatabase).ignoreSchema) {
+        if ((databaseWorker.metadata as HiveWorkerMetadataDatabase).ignoreSchema) {
             tables = _.uniqBy(connectionSchema.tables, "tableName");
         } else {
             tables = _.uniqBy(connectionSchema.tables, (t) => [t.schemaName, t.tableName].join("."));
         }
 
-        const lifecycleWorkers: RegisteredHiveWorker[] = enabledWorkers.filter(
+        const lifecycleWorkers: RegisteredHiveWorker[] = this.registeredWorkers.filter(
             (rw: RegisteredHiveWorker) => rw.type === HiveWorkerType.DataLifecycleFunction
         );
         const builder: StringBuilder = new StringBuilder();
@@ -76,8 +72,13 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         })`);
         builder.appendLine();
 
-        enabledWorkers.forEach((rw: RegisteredHiveWorker) => {
-            builder.appendLine(`var ${rw.name} = require("${rw.importPath}");`);
+        this.registeredWorkers.forEach((rw: RegisteredHiveWorker) => {
+            const hiveWorkerConfig: HiveWorkerConfig | undefined = global.omnihive.serverConfig.workers.find(
+                (hwc: HiveWorkerConfig) => hwc.name === rw.name && hwc.type === rw.type
+            );
+            if (hiveWorkerConfig) {
+                builder.appendLine(`var ${hiveWorkerConfig.name} = require("${hiveWorkerConfig.importPath}");`);
+            }
         });
 
         // Loop through tables and build base objects
@@ -120,7 +121,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             );
             builder.appendLine(`\tname: "${pluralize.singular(tableSchema[0].tableNameCamelCase)}",`);
             builder.appendLine(`\textensions: {`);
-            builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.config.name}",`);
+            builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.name}",`);
             builder.appendLine(`\t\tdbTableName: "${tableSchema[0].tableName}",`);
             builder.appendLine(`\t\tdbSchemaName: "${tableSchema[0].schemaName}",`);
             if (!IsHelper.isEmptyArray(primaryKeys)) {
@@ -240,7 +241,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             );
             builder.appendLine(`\tname: "${pluralize.singular(tableSchema[0].tableNameCamelCase)}_agg",`);
             builder.appendLine(`\textensions: {`);
-            builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.config.name}",`);
+            builder.appendLine(`\t\tdbWorkerInstance: "${databaseWorker.name}",`);
             builder.appendLine(`\t\tdbTableName: "${tableSchema[0].tableName}",`);
             if (!IsHelper.isEmptyArray(primaryKeys)) {
                 builder.append(`\t\tdbPrimaryKeys: [`);
@@ -588,7 +589,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         builder.appendLine(`\t\t\t\tresolve: async (parent, args, context, resolveInfo) => {`);
         builder.appendLine(`\t\t\t\t\tvar graphParser = new ParseMaster();`);
         builder.appendLine(
-            `\t\t\t\t\tvar dbResponse = await AwaitHelper.execute(graphParser.parseCustomSql("${databaseWorker.config.name}", args.encryptedSql, context.omnihive));`
+            `\t\t\t\t\tvar dbResponse = await AwaitHelper.execute(graphParser.parseCustomSql("${databaseWorker.name}", args.encryptedSql, context.omnihive));`
         );
         builder.appendLine(`\t\t\t\t\treturn [{ recordset: dbResponse }];`);
         builder.appendLine(`\t\t\t\t},`);
@@ -619,7 +620,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\t\t\t\tresolve: async (parent, args, context, resolveInfo) => {`);
             builder.appendLine(`\t\t\t\t\tvar graphParser = new ParseMaster();`);
             builder.appendLine(
-                `\t\t\t\t\treturn await AwaitHelper.execute(graphParser.parseAstQuery("${databaseWorker.config.name}", args, resolveInfo, context.omnihive));`
+                `\t\t\t\t\treturn await AwaitHelper.execute(graphParser.parseAstQuery("${databaseWorker.name}", args, resolveInfo, context.omnihive));`
             );
             builder.appendLine(`\t\t\t\t}`);
             builder.appendLine(`\t\t\t},`);
@@ -641,7 +642,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\t\t\t\tresolve: async (parent, args, context, resolveInfo) => {`);
             builder.appendLine(`\t\t\t\t\tvar graphParser = new ParseMaster();`);
             builder.appendLine(
-                `\t\t\t\t\treturn await AwaitHelper.execute(graphParser.parseAstQuery("${databaseWorker.config.name}", args, resolveInfo, context.omnihive));`
+                `\t\t\t\t\treturn await AwaitHelper.execute(graphParser.parseAstQuery("${databaseWorker.name}", args, resolveInfo, context.omnihive));`
             );
             builder.appendLine(`\t\t\t\t}`);
             builder.appendLine(`\t\t\t},`);
@@ -696,19 +697,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.Before &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Insert &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.Before &&
+                    metadata.action == LifecycleWorkerAction.Insert &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     beforeInsertArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -721,7 +722,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     builder.appendLine(
                         `\t\t\t\t\t\t{${pluralize.plural(tableSchema[0].tableNameCamelCase)}, customDmlArgs} = ${
                             lifecycleWorker.worker.name
-                        }Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", ${pluralize.plural(
+                        }Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", ${pluralize.plural(
                             tableSchema[0].tableNameCamelCase
                         )}, customDmlArgs, context.omnihive);`
                     );
@@ -738,19 +739,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.InsteadOf &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Insert &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.InsteadOf &&
+                    metadata.action == LifecycleWorkerAction.Insert &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     insteadOfInsertArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -763,7 +764,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     if (index === insteadOfInsertArray.length - 1) {
                         builder.appendLine(
                             `\t\t\t\t\t\tvar insertResponse = ${lifecycleWorker.worker.name}Instance("${
-                                databaseWorker.config.name
+                                databaseWorker.name
                             }", "${tableSchema[0].tableName}", ${pluralize.plural(
                                 tableSchema[0].tableNameCamelCase
                             )}, customDmlArgs, context.omnihive);`
@@ -772,9 +773,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                         builder.appendLine(
                             `\t\t\t\t\t\t{${pluralize.plural(tableSchema[0].tableNameCamelCase)}, customDmlArgs} = ${
                                 lifecycleWorker.worker.name
-                            }Instance("${databaseWorker.config.name}", "${
-                                tableSchema[0].tableName
-                            }", ${pluralize.plural(
+                            }Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", ${pluralize.plural(
                                 tableSchema[0].tableNameCamelCase
                             )}, customDmlArgs, context.omnihive);`
                         );
@@ -783,7 +782,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             } else {
                 builder.appendLine(
                     `\t\t\t\t\t\tvar insertResponse = await AwaitHelper.execute(graphParser.parseInsert("${
-                        databaseWorker.config.name
+                        databaseWorker.name
                     }", "${tableSchema[0].tableName}", ${pluralize.plural(
                         tableSchema[0].tableNameCamelCase
                     )}, customDmlArgs, context.omnihive));`
@@ -800,19 +799,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.After &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Insert &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.After &&
+                    metadata.action == LifecycleWorkerAction.Insert &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     afterInsertArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -823,7 +822,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
                     );
                     builder.appendLine(
-                        `\t\t\t\t\t\t{insertResponse, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", insertResponse, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t{insertResponse, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", insertResponse, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -870,19 +869,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.Before &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Update &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.Before &&
+                    metadata.action == LifecycleWorkerAction.Update &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     beforeUpdateArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -893,7 +892,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
                     );
                     builder.appendLine(
-                        `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -908,19 +907,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.InsteadOf &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Update &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.InsteadOf &&
+                    metadata.action == LifecycleWorkerAction.Update &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     insteadOfUpdateArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -932,17 +931,17 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     );
                     if (index === insteadOfUpdateArray.length - 1) {
                         builder.appendLine(
-                            `\t\t\t\t\t\tvar updateCount = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\tvar updateCount = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
                         );
                     } else {
                         builder.appendLine(
-                            `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\t{updateObject, whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive);`
                         );
                     }
                 });
             } else {
                 builder.appendLine(
-                    `\t\t\t\t\t\tvar updateCount = await AwaitHelper.execute(graphParser.parseUpdate("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive));`
+                    `\t\t\t\t\t\tvar updateCount = await AwaitHelper.execute(graphParser.parseUpdate("${databaseWorker.name}", "${tableSchema[0].tableName}", updateObject, whereObject, customDmlArgs, context.omnihive));`
                 );
             }
 
@@ -956,19 +955,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.After &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Update &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.After &&
+                    metadata.action == LifecycleWorkerAction.Update &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     afterUpdateArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -979,7 +978,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
                     );
                     builder.appendLine(
-                        `\t\t\t\t\t\t{updateCount, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", updateCount, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t{updateCount, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", updateCount, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -1021,19 +1020,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.Before &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Delete &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.Before &&
+                    metadata.action == LifecycleWorkerAction.Delete &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     beforeDeleteArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -1044,7 +1043,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
                     );
                     builder.appendLine(
-                        `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -1059,19 +1058,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.InsteadOf &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Delete &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.InsteadOf &&
+                    metadata.action == LifecycleWorkerAction.Delete &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     insteadOfDeleteArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -1083,17 +1082,17 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     );
                     if (index === insteadOfDeleteArray.length - 1) {
                         builder.appendLine(
-                            `\t\t\t\t\t\tvar deleteCount = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\tvar deleteCount = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
                         );
                     } else {
                         builder.appendLine(
-                            `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
+                            `\t\t\t\t\t\t{whereObject, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive);`
                         );
                     }
                 });
             } else {
                 builder.appendLine(
-                    `\t\t\t\t\t\tvar deleteCount = await AwaitHelper.execute(graphParser.parseDelete("${databaseWorker.config.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive));`
+                    `\t\t\t\t\t\tvar deleteCount = await AwaitHelper.execute(graphParser.parseDelete("${databaseWorker.name}", "${tableSchema[0].tableName}", whereObject, customDmlArgs, context.omnihive));`
                 );
             }
 
@@ -1107,19 +1106,19 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                     lifecycleWorker.metadata as HiveWorkerMetadataLifecycleFunction;
                 if (
                     lifecycleWorker.type == HiveWorkerType.DataLifecycleFunction &&
-                    metadata.lifecycleStage == LifecycleWorkerStage.After &&
-                    metadata.lifecycleAction == LifecycleWorkerAction.Delete &&
-                    metadata.lifecycleWorker === databaseWorker.config.name &&
-                    metadata.lifecycleTables.some(
+                    metadata.stage == LifecycleWorkerStage.After &&
+                    metadata.action == LifecycleWorkerAction.Delete &&
+                    metadata.databaseWorker === databaseWorker.name &&
+                    metadata.tables.some(
                         (lifecycleTable) =>
                             (lifecycleTable === tableSchema[0].tableName &&
-                                metadata.lifecycleSchema === tableSchema[0].schemaName) ||
+                                metadata.schema === tableSchema[0].schemaName) ||
                             lifecycleTable === "*"
                     )
                 ) {
                     afterDeleteArray.push({
                         worker: lifecycleWorker,
-                        order: metadata.lifecycleOrder,
+                        order: metadata.order,
                     });
                 }
             });
@@ -1130,7 +1129,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
                         `\t\t\t\t\t\t${lifecycleWorker.worker.name}Instance = global.omnihive.registeredWorkers.find((worker) => worker.name === "${lifecycleWorker.worker.name}").instance;`
                     );
                     builder.appendLine(
-                        `\t\t\t\t\t{deleteCount, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.config.name}", "${tableSchema[0].tableName}", deleteCount, customDmlArgs, context.omnihive);`
+                        `\t\t\t\t\t{deleteCount, customDmlArgs} = ${lifecycleWorker.worker.name}Instance("${databaseWorker.name}", "${tableSchema[0].tableName}", deleteCount, customDmlArgs, context.omnihive);`
                     );
                 });
             }
@@ -1151,7 +1150,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
         builder.appendLine();
 
         // Build stored proc object if they exist
-        const dbWorkerMeta: HiveWorkerMetadataDatabase = databaseWorker.config.metadata as HiveWorkerMetadataDatabase;
+        const dbWorkerMeta: HiveWorkerMetadataDatabase = databaseWorker.metadata as HiveWorkerMetadataDatabase;
 
         if (!IsHelper.isEmptyArray(connectionSchema.procFunctions)) {
             // Stored proc object type
@@ -1168,7 +1167,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             let procFunctions: ProcFunctionSchema[];
 
             if (dbWorkerMeta.ignoreSchema) {
-                procFunctions = _.uniqBy(connectionSchema.procFunctions, "procName");
+                procFunctions = _.uniqBy(connectionSchema.procFunctions, "name");
             } else {
                 procFunctions = _.uniqBy(connectionSchema.procFunctions, (p) => [p.schemaName, p.name].join("."));
             }
@@ -1234,7 +1233,7 @@ export default class GraphBuilder extends HiveWorkerBase implements IGraphBuildW
             builder.appendLine(`\t\t\t\tresolve: async (parent, args, context, resolveInfo) => {`);
             builder.appendLine(`\t\t\t\t\tvar graphParser = new ParseMaster();`);
             builder.appendLine(
-                `\t\t\t\t\tvar dbResponses = await AwaitHelper.execute(graphParser.parseProcedure("${databaseWorker.config.name}", resolveInfo, context.omnihive));`
+                `\t\t\t\t\tvar dbResponses = await AwaitHelper.execute(graphParser.parseProcedure("${databaseWorker.name}", resolveInfo, context.omnihive));`
             );
             builder.appendLine(`\t\t\t\t\tfor (const item of dbResponses) {`);
             builder.appendLine(`\t\t\t\t\t\t\tdbResponses[item.procName] = item.results;`);

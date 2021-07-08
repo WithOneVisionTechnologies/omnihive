@@ -9,9 +9,9 @@ import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { StringBuilder } from "@withonevision/omnihive-core/helpers/StringBuilder";
 import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
 import { ILogWorker } from "@withonevision/omnihive-core/interfaces/ILogWorker";
-import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
+import { ServerConfig } from "@withonevision/omnihive-core/models/ServerConfig";
 import { EnvironmentVariable } from "@withonevision/omnihive-core/models/EnvironmentVariable";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
+import { HiveWorkerConfig } from "@withonevision/omnihive-core/models/HiveWorkerConfig";
 import { RegisteredHiveWorker } from "@withonevision/omnihive-core/models/RegisteredHiveWorker";
 import childProcess from "child_process";
 import readPkgUp, { NormalizedReadResult } from "read-pkg-up";
@@ -24,13 +24,13 @@ export class CommonService {
         global.omnihive = new GlobalObject();
         global.omnihive.ohDirName = rootDir;
         global.omnihive.commandLineArgs = commandLineArgs;
-        global.omnihive.appSettings = new AppSettings();
+        global.omnihive.serverConfig = new ServerConfig();
 
         Object.keys(process.env)
             .filter((key: string) => key.startsWith("OH_"))
             .forEach((key: string) => {
                 if (!IsHelper.isNullOrUndefined(process.env[key]) && IsHelper.isBoolean(process.env[key])) {
-                    global.omnihive.appSettings.environmentVariables.push({
+                    global.omnihive.serverConfig.environmentVariables.push({
                         key,
                         value: process.env[key] === "true",
                         type: EnvironmentVariableType.Boolean,
@@ -40,7 +40,7 @@ export class CommonService {
                 }
 
                 if (!IsHelper.isNullOrUndefined(process.env[key]) && IsHelper.isNumber(process.env[key])) {
-                    global.omnihive.appSettings.environmentVariables.push({
+                    global.omnihive.serverConfig.environmentVariables.push({
                         key,
                         value: Number(process.env[key]),
                         type: EnvironmentVariableType.Number,
@@ -49,7 +49,7 @@ export class CommonService {
                     return;
                 }
 
-                global.omnihive.appSettings.environmentVariables.push({
+                global.omnihive.serverConfig.environmentVariables.push({
                     key,
                     value: String(process.env[key]),
                     type: EnvironmentVariableType.String,
@@ -66,7 +66,7 @@ export class CommonService {
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive) &&
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive.configWorkers)
         ) {
-            const configWorkers: HiveWorker[] = pkgJson.packageJson.omniHive.configWorkers as HiveWorker[];
+            const configWorkers: HiveWorkerConfig[] = pkgJson.packageJson.omniHive.configWorkers as HiveWorkerConfig[];
             let selectedConfigWorkerName: string;
 
             switch (process.env["OH_CONFIG_TYPE"] as ConfigType) {
@@ -93,8 +93,8 @@ export class CommonService {
                     break;
             }
 
-            const selectedConfigWorker: HiveWorker | undefined = configWorkers.find(
-                (worker: HiveWorker) => worker.name === selectedConfigWorkerName
+            const selectedConfigWorker: HiveWorkerConfig | undefined = configWorkers.find(
+                (worker: HiveWorkerConfig) => worker.name === selectedConfigWorkerName
             );
 
             if (IsHelper.isNullOrUndefined(selectedConfigWorker)) {
@@ -109,7 +109,7 @@ export class CommonService {
                 await AwaitHelper.execute(
                     global.omnihive.pushWorker(selectedConfigWorker, RegisteredHiveWorkerSection.Config)
                 );
-                global.omnihive.appSettings.workers.push(selectedConfigWorker);
+                global.omnihive.serverConfig.workers.push(selectedConfigWorker);
             }
         }
 
@@ -120,12 +120,12 @@ export class CommonService {
             throw new Error("No config worker can be found.  OmniHive cannot load.");
         }
 
-        const appSettings: AppSettings = await AwaitHelper.execute(configWorker.get());
+        const serverConfig: ServerConfig = await AwaitHelper.execute(configWorker.get());
 
         // Push config environment variables
-        appSettings.environmentVariables.forEach((envVariable: EnvironmentVariable) => {
+        serverConfig.environmentVariables.forEach((envVariable: EnvironmentVariable) => {
             if (
-                !global.omnihive.appSettings.environmentVariables.some(
+                !global.omnihive.serverConfig.environmentVariables.some(
                     (ev: EnvironmentVariable) => ev.key === envVariable.key
                 )
             ) {
@@ -151,7 +151,7 @@ export class CommonService {
                         break;
                 }
 
-                global.omnihive.appSettings.environmentVariables.push(valueToPush);
+                global.omnihive.serverConfig.environmentVariables.push(valueToPush);
             }
         });
 
@@ -162,14 +162,14 @@ export class CommonService {
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive) &&
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive.bootWorkers)
         ) {
-            const bootWorkers: HiveWorker[] = pkgJson.packageJson.omniHive.bootWorkers as HiveWorker[];
+            const bootWorkers: HiveWorkerConfig[] = pkgJson.packageJson.omniHive.bootWorkers as HiveWorkerConfig[];
 
             for (const bootWorker of bootWorkers) {
                 if (
                     !global.omnihive.registeredWorkers.some((rw: RegisteredHiveWorker) => rw.name === bootWorker.name)
                 ) {
                     await AwaitHelper.execute(global.omnihive.pushWorker(bootWorker, RegisteredHiveWorkerSection.Boot));
-                    global.omnihive.appSettings.workers.push(bootWorker);
+                    global.omnihive.serverConfig.workers.push(bootWorker);
                 }
             }
         }
@@ -188,7 +188,7 @@ export class CommonService {
         );
 
         const pkgJson: NormalizedReadResult | undefined = await AwaitHelper.execute(readPkgUp());
-        const appSettings: AppSettings = await AwaitHelper.execute(configWorker.get());
+        const serverConfig: ServerConfig = await AwaitHelper.execute(configWorker.get());
 
         // Load Core Workers
         logWorker?.write(OmniHiveLogLevel.Info, `Loading core workers from package.json...`);
@@ -199,14 +199,14 @@ export class CommonService {
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive) &&
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive.coreWorkers)
         ) {
-            const coreWorkers: HiveWorker[] = pkgJson.packageJson.omniHive.coreWorkers as HiveWorker[];
+            const coreWorkers: HiveWorkerConfig[] = pkgJson.packageJson.omniHive.coreWorkers as HiveWorkerConfig[];
 
             for (const coreWorker of coreWorkers) {
                 if (
                     !global.omnihive.registeredWorkers.some((rw: RegisteredHiveWorker) => rw.name === coreWorker.name)
                 ) {
                     await AwaitHelper.execute(global.omnihive.pushWorker(coreWorker, RegisteredHiveWorkerSection.Core));
-                    global.omnihive.appSettings.workers.push(coreWorker);
+                    global.omnihive.serverConfig.workers.push(coreWorker);
                 }
             }
         }
@@ -214,9 +214,9 @@ export class CommonService {
         // Load user workers
         logWorker?.write(OmniHiveLogLevel.Info, `Loading user workers from enviroment configuration...`);
 
-        for (const worker of appSettings.workers) {
+        for (const worker of serverConfig.workers) {
             if (!global.omnihive.registeredWorkers.some((rw: RegisteredHiveWorker) => rw.name === worker.name)) {
-                global.omnihive.appSettings.workers.push(worker);
+                global.omnihive.serverConfig.workers.push(worker);
             }
         }
 
@@ -228,15 +228,16 @@ export class CommonService {
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive) &&
             !IsHelper.isNullOrUndefined(pkgJson.packageJson.omniHive.defaultWorkers)
         ) {
-            const defaultWorkers: HiveWorker[] = pkgJson.packageJson.omniHive.defaultWorkers as HiveWorker[];
+            const defaultWorkers: HiveWorkerConfig[] = pkgJson.packageJson.omniHive
+                .defaultWorkers as HiveWorkerConfig[];
 
-            defaultWorkers.forEach((defaultWorker: HiveWorker) => {
+            defaultWorkers.forEach((defaultWorker: HiveWorkerConfig) => {
                 if (
-                    !global.omnihive.appSettings.workers.some(
-                        (hiveWorker: HiveWorker) => hiveWorker.type === defaultWorker.type
+                    !global.omnihive.serverConfig.workers.some(
+                        (hiveWorker: HiveWorkerConfig) => hiveWorker.type === defaultWorker.type
                     )
                 ) {
-                    global.omnihive.appSettings.workers.push(defaultWorker);
+                    global.omnihive.serverConfig.workers.push(defaultWorker);
                 }
             });
         }
@@ -255,7 +256,7 @@ export class CommonService {
             const loadedPackages: any = pkgJson.packageJson.dependencies;
             const workerPackages: any = {};
 
-            global.omnihive.appSettings.workers.forEach((hiveWorker: HiveWorker) => {
+            global.omnihive.serverConfig.workers.forEach((hiveWorker: HiveWorkerConfig) => {
                 if (
                     !IsHelper.isNullOrUndefined(hiveWorker.package) &&
                     !IsHelper.isEmptyStringOrWhitespace(hiveWorker.package) &&
@@ -374,7 +375,7 @@ export class CommonService {
 
         // Register hive workers
         logWorker?.write(OmniHiveLogLevel.Info, "Working on hive workers...");
-        await AwaitHelper.execute(global.omnihive.initWorkers(global.omnihive.appSettings));
+        await AwaitHelper.execute(global.omnihive.initWorkers());
         logWorker?.write(OmniHiveLogLevel.Info, "Hive Workers Initiated...");
     };
 }

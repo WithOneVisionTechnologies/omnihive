@@ -1,6 +1,6 @@
 {
     "name": "@withonevision/omnihive-worker-knex-postgres",
-    "version": "6.2.33",
+    "version": "6.2.45",
     "description": "OmniHive Knex Postgres Database Worker",
     "license": "MIT",
     "author": {

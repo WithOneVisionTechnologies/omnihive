@@ -1,6 +1,6 @@
 {
     "name": "@withonevision/omnihive-worker-config-mysql",
-    "version": "6.2.33",
+    "version": "6.2.45",
     "description": "OmniHive MySQL Config Worker",
     "license": "MIT",
     "author": {

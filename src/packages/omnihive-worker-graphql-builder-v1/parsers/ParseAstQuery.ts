@@ -240,7 +240,7 @@ export class ParseAstQuery {
         this.tables.push(currentTable);
 
         // Set the initial "from" clause
-        if (this.databaseWorker.config.metadata.ignoreSchema) {
+        if (this.databaseWorker.metadata.ignoreSchema) {
             this.query.from(`${graphParentType.extensions?.dbTableName} as t${this.currentTableIndex}`);
         } else {
             this.query.from(
@@ -283,7 +283,7 @@ export class ParseAstQuery {
         }
 
         return {
-            workerName: this.databaseWorker.config.name,
+            workerName: this.databaseWorker.name,
             sql: this.query.toString(),
             hydrationDefinition,
         };
@@ -322,7 +322,7 @@ export class ParseAstQuery {
         const returnHydration: any = {};
 
         // Get max limit
-        const maxLimitSetting = this.databaseWorker.config.metadata.rowLimit;
+        const maxLimitSetting = this.databaseWorker.metadata.rowLimit;
         let maxLimit: number = 100000;
 
         if (
@@ -661,7 +661,7 @@ export class ParseAstQuery {
         }
 
         const schema: ConnectionSchema | undefined = global.omnihive.registeredSchemas.find(
-            (value: ConnectionSchema) => value.workerName === this.databaseWorker.config.name
+            (value: ConnectionSchema) => value.workerName === this.databaseWorker.name
         );
 
         let tableSchema: TableSchema[] = [];

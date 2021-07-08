@@ -1,7 +1,6 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IPubSubClientWorker } from "@withonevision/omnihive-core/interfaces/IPubSubClientWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { PubSubListener } from "@withonevision/omnihive-core/models/PubSubListener";
 import Pusher, { Channel } from "pusher-js";
@@ -18,17 +17,17 @@ export default class PusherJsPubSubClientWorker extends HiveWorkerBase implement
     private pusher!: Pusher;
     private listeners: PubSubListener[] = [];
     private channels: Channel[] = [];
-    private metadata!: PusherJsPubSubClientWorkerMetadata;
+    private typedMetadata!: PusherJsPubSubClientWorkerMetadata;
 
     constructor() {
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
-        this.metadata = this.checkObjectStructure<PusherJsPubSubClientWorkerMetadata>(
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
+        this.typedMetadata = this.checkObjectStructure<PusherJsPubSubClientWorkerMetadata>(
             PusherJsPubSubClientWorkerMetadata,
-            config.metadata
+            metadata
         );
         await AwaitHelper.execute(this.connect());
     }
@@ -103,10 +102,10 @@ export default class PusherJsPubSubClientWorker extends HiveWorkerBase implement
                 return;
             }
 
-            this.pusher = new Pusher(this.metadata.key, { cluster: this.metadata.cluster });
+            this.pusher = new Pusher(this.typedMetadata.key, { cluster: this.typedMetadata.cluster });
             this.connected = true;
         } catch (err) {
-            if (retry <= this.metadata.maxRetries) {
+            if (retry <= this.typedMetadata.maxRetries) {
                 this.connect(retry++);
             } else {
                 throw new Error("The maximum amount of retries to connect has been reached.");

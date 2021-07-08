@@ -1,6 +1,5 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IPubSubServerWorker } from "@withonevision/omnihive-core/interfaces/IPubSubServerWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import { PubSubListener } from "@withonevision/omnihive-core/models/PubSubListener";
 import PusherServer from "pusher";
@@ -25,18 +24,16 @@ export default class PusherPubSubServerWorker extends HiveWorkerBase implements 
         throw new Error("Not Available for This Worker");
     };
 
-    public async init(config: HiveWorker): Promise<void> {
+    public async init(name: string, metadata?: any): Promise<void> {
         try {
-            await AwaitHelper.execute(super.init(config));
-            const metadata: PusherPubSubServerWorkerMetadata = this.checkObjectStructure<PusherPubSubServerWorkerMetadata>(
-                PusherPubSubServerWorkerMetadata,
-                config.metadata
-            );
+            await AwaitHelper.execute(super.init(name, metadata));
+            const typedMetadata: PusherPubSubServerWorkerMetadata =
+                this.checkObjectStructure<PusherPubSubServerWorkerMetadata>(PusherPubSubServerWorkerMetadata, metadata);
             this.server = new PusherServer({
-                appId: metadata.appId,
-                key: metadata.key,
-                secret: metadata.secret,
-                cluster: metadata.cluster,
+                appId: typedMetadata.appId,
+                key: typedMetadata.key,
+                secret: typedMetadata.secret,
+                cluster: typedMetadata.cluster,
             });
         } catch (err) {
             throw new Error(JSON.stringify(serializeError(err)));

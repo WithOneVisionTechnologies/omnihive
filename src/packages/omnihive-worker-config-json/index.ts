@@ -3,11 +3,10 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { ObjectHelper } from "@withonevision/omnihive-core/helpers/ObjectHelper";
 import { IConfigWorker } from "@withonevision/omnihive-core/interfaces/IConfigWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import fse from "fs-extra";
 import { serializeError } from "serialize-error";
-import { AppSettings } from "@withonevision/omnihive-core/models/AppSettings";
+import { ServerConfig } from "@withonevision/omnihive-core/models/ServerConfig";
 
 export class JsonConfigWorkerMetadata {
     public configPath: string = "";
@@ -20,15 +19,15 @@ export default class JsonConfigWorker extends HiveWorkerBase implements IConfigW
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
+    public async init(name: string, metadata?: any): Promise<void> {
         try {
-            await AwaitHelper.execute(super.init(config));
-            const metadata: JsonConfigWorkerMetadata = this.checkObjectStructure<JsonConfigWorkerMetadata>(
+            await AwaitHelper.execute(super.init(name, metadata));
+            const typedMetadata: JsonConfigWorkerMetadata = this.checkObjectStructure<JsonConfigWorkerMetadata>(
                 JsonConfigWorkerMetadata,
-                config.metadata
+                metadata
             );
 
-            this.configPath = global.omnihive.getFilePath(metadata.configPath);
+            this.configPath = global.omnihive.getFilePath(typedMetadata.configPath);
 
             if (!fse.existsSync(this.configPath)) {
                 throw new Error("Config path cannot be found");
@@ -38,9 +37,9 @@ export default class JsonConfigWorker extends HiveWorkerBase implements IConfigW
         }
     }
 
-    public get = async (): Promise<AppSettings> => {
-        const loadedFile = ObjectHelper.create<AppSettings>(
-            AppSettings,
+    public get = async (): Promise<ServerConfig> => {
+        const loadedFile = ObjectHelper.create<ServerConfig>(
+            ServerConfig,
             JSON.parse(fse.readFileSync(this.configPath, { encoding: "utf8" }))
         );
 
@@ -51,7 +50,7 @@ export default class JsonConfigWorker extends HiveWorkerBase implements IConfigW
         return loadedFile;
     };
 
-    public set = async (settings: AppSettings): Promise<boolean> => {
+    public set = async (settings: ServerConfig): Promise<boolean> => {
         settings.environmentVariables.forEach((value) => {
             delete value.isSystem;
         });

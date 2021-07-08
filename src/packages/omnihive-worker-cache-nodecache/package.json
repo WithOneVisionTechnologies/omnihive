@@ -1,6 +1,6 @@
 {
     "name": "@withonevision/omnihive-worker-cache-nodecache",
-    "version": "6.2.33",
+    "version": "6.2.45",
     "description": "OmniHive Node Cache Worker",
     "license": "MIT",
     "author": {

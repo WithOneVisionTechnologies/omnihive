@@ -67,7 +67,7 @@ export class ServerService {
             let app: express.Express = await AwaitHelper.execute(this.getCleanAppServer());
 
             const servers: RegisteredHiveWorker[] = global.omnihive.registeredWorkers.filter(
-                (rw: RegisteredHiveWorker) => rw.type === HiveWorkerType.Server && rw.enabled
+                (rw: RegisteredHiveWorker) => rw.type === HiveWorkerType.Server
             );
 
             for (const server of servers) {
@@ -267,9 +267,7 @@ export class ServerService {
         global.omnihive.registeredWorkers
             .filter(
                 (rw: RegisteredHiveWorker) =>
-                    rw.type === HiveWorkerType.RestEndpointFunction &&
-                    rw.section === RegisteredHiveWorkerSection.Core &&
-                    rw.enabled
+                    rw.type === HiveWorkerType.RestEndpointFunction && rw.section === RegisteredHiveWorkerSection.Core
             )
             .forEach((rw: RegisteredHiveWorker) => {
                 let workerMetaData: HiveWorkerMetadataRestFunction;

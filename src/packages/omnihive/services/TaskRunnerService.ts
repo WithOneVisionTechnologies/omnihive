@@ -23,7 +23,7 @@ export class TaskRunnerService {
 
         const taskWorker: RegisteredHiveWorker | undefined = global.omnihive.registeredWorkers.find(
             (rw: RegisteredHiveWorker) =>
-                rw.name === commandLineArgs.taskRunnerWorker && rw.enabled && rw.type === HiveWorkerType.TaskFunction
+                rw.name === commandLineArgs.taskRunnerWorker && rw.type === HiveWorkerType.TaskFunction
         );
 
         if (IsHelper.isNullOrUndefined(taskWorker)) {

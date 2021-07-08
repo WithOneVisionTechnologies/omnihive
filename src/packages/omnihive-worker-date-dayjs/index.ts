@@ -1,7 +1,6 @@
 import { AwaitHelper } from "@withonevision/omnihive-core/helpers/AwaitHelper";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
 import { IDateWorker } from "@withonevision/omnihive-core/interfaces/IDateWorker";
-import { HiveWorker } from "@withonevision/omnihive-core/models/HiveWorker";
 import { HiveWorkerBase } from "@withonevision/omnihive-core/models/HiveWorkerBase";
 import dayjs from "dayjs";
 import tz from "dayjs/plugin/timezone";
@@ -12,15 +11,15 @@ export class DayJsDateWorkerMetadata {
 }
 
 export default class DayJsDateWorker extends HiveWorkerBase implements IDateWorker {
-    private metadata!: DayJsDateWorkerMetadata;
+    private typedMetadata!: DayJsDateWorkerMetadata;
 
     constructor() {
         super();
     }
 
-    public async init(config: HiveWorker): Promise<void> {
-        await AwaitHelper.execute(super.init(config));
-        this.metadata = this.checkObjectStructure<DayJsDateWorkerMetadata>(DayJsDateWorkerMetadata, config.metadata);
+    public async init(name: string, metadata?: any): Promise<void> {
+        await AwaitHelper.execute(super.init(name, metadata));
+        this.typedMetadata = this.checkObjectStructure<DayJsDateWorkerMetadata>(DayJsDateWorkerMetadata, metadata);
     }
 
     public convertDateBetweenTimezones = (date: Date, toTimezone: string, fromTimezone?: string): string => {
@@ -38,7 +37,7 @@ export default class DayJsDateWorker extends HiveWorkerBase implements IDateWork
 
             const toDate: dayjs.Dayjs = fromDate.clone().tz(toTimezone);
 
-            return toDate.format(this.metadata.dateFormat);
+            return toDate.format(this.typedMetadata.dateFormat);
         } catch {
             throw new Error("Could not convert timezones.  Check to make sure timezones are IANA-specific");
         }
@@ -46,7 +45,7 @@ export default class DayJsDateWorker extends HiveWorkerBase implements IDateWork
 
     public getFormattedDateString = (date: Date, format?: string): string => {
         if (IsHelper.isNullOrUndefined(format)) {
-            format = this.metadata.dateFormat;
+            format = this.typedMetadata.dateFormat;
         }
 
         return dayjs(date).format(format);
