@@ -24,7 +24,7 @@ const Header: React.FC = (): React.ReactElement => {
     const underline: string = "----------------------------------------------------------";
 
     return (
-        <Box flexDirection="column" alignItems="center">
+        <Box flexDirection="column" alignItems="flex-start">
             <Box flexDirection="row">
                 <Box>
                     <Text color={CliColors.darkYellow} bold={true}>

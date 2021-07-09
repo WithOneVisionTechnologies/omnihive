@@ -16,10 +16,6 @@ const MainMenuModule: React.FC = (): React.ReactElement => {
             label: "Create New Instance",
             value: "create",
         },
-        {
-            label: "Edit Existing Instance",
-            value: "edit",
-        },
     ];
 
     const onSelectHandler = (item: SelectInputItem<any>) => {

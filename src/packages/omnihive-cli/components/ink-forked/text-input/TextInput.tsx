@@ -2,7 +2,16 @@ import React from "react";
 import { Text, useInput } from "ink";
 import chalk from "chalk";
 
+export enum TextInputMode {
+    Alphanumeric,
+    NumberOnly,
+}
 interface TextInputProps {
+    /**
+     *  Mode of text input
+     */
+    mode?: TextInputMode;
+
     /**
      * Text to display when `value` is empty.
      */
@@ -47,6 +56,7 @@ interface TextInputProps {
 
 const TextInput: React.FC<TextInputProps> = ({
     value: originalValue,
+    mode = TextInputMode.Alphanumeric,
     placeholder = "",
     focus = true,
     mask,
@@ -67,15 +77,10 @@ const TextInput: React.FC<TextInputProps> = ({
             }
 
             const newValue = originalValue || "";
-
-            if (previousState.cursorOffset > newValue.length - 1) {
-                return {
-                    cursorOffset: newValue.length,
-                    cursorWidth: 0,
-                };
-            }
-
-            return previousState;
+            return {
+                cursorOffset: newValue.length,
+                cursorWidth: previousState.cursorWidth,
+            };
         });
     }, [originalValue, focus, showCursor]);
 
@@ -129,6 +134,10 @@ const TextInput: React.FC<TextInputProps> = ({
                     onSubmit(originalValue);
                 }
 
+                return;
+            }
+
+            if (mode === TextInputMode.NumberOnly && /[^\d]/.test(input)) {
                 return;
             }
 

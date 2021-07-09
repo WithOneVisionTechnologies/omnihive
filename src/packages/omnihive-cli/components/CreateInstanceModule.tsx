@@ -6,6 +6,7 @@ import TextQuestion from "./common/TextQuestion";
 import { IsHelper } from "src/packages/omnihive-core/helpers/IsHelper";
 import { CommandLineModule } from "../enums/CommandLineModule";
 import { Newline, Text } from "ink";
+import { TextInputMode } from "./ink-forked/text-input/TextInput";
 
 type CreateInstanceWizardStep = {
     page: CommandLinePage[];
@@ -75,6 +76,7 @@ const CreateInstanceModule: React.FC = (): React.ReactElement => {
                     initialText={createInstanceModel.adminSocketPort.toString()}
                     question={"What port would you like to host the admin socket server?"}
                     textTitle={"Admin Socket Port"}
+                    mode={TextInputMode.NumberOnly}
                     onTextChange={(returnText: string) => {
                         setCreateInstanceModel({ ...createInstanceModel, adminSocketPort: +returnText });
                         wizardStepper();

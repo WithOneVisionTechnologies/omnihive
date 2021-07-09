@@ -1,6 +1,6 @@
 import React from "react";
 import { IsHelper } from "@withonevision/omnihive-core/helpers/IsHelper";
-import TextInput from "../ink-forked/text-input/TextInput";
+import TextInput, { TextInputMode } from "../ink-forked/text-input/TextInput";
 import { Text, Box } from "ink";
 import { CliColors } from "../../stores/CommandLineStore";
 
@@ -9,6 +9,7 @@ interface TextQuestionProps {
     onTextChange: (returnText: string) => void;
     textTitle: string;
     question: string;
+    mode?: TextInputMode;
 }
 
 const TextQuestion: React.FC<TextQuestionProps> = (props): React.ReactElement => {
@@ -18,11 +19,7 @@ const TextQuestion: React.FC<TextQuestionProps> = (props): React.ReactElement =>
         if (!IsHelper.isNullOrUndefinedOrEmptyStringOrWhitespace(props.initialText)) {
             setTextValue(props.initialText);
         }
-    });
-
-    const onChangeHandler = (newText: string) => {
-        setTextValue(newText);
-    };
+    }, [props]);
 
     const onSubmitHandler = (newText: string) => {
         if (!IsHelper.isNullOrUndefinedOrEmptyStringOrWhitespace(newText)) {
@@ -39,7 +36,13 @@ const TextQuestion: React.FC<TextQuestionProps> = (props): React.ReactElement =>
                 <Box marginRight={1}>
                     <Text>{props.textTitle}:</Text>
                 </Box>
-                <TextInput showCursor={true} value={textValue} onChange={onChangeHandler} onSubmit={onSubmitHandler} />
+                <TextInput
+                    mode={props.mode ?? TextInputMode.Alphanumeric}
+                    showCursor={true}
+                    value={textValue}
+                    onChange={setTextValue}
+                    onSubmit={onSubmitHandler}
+                />
             </Box>
         </Box>
     );
